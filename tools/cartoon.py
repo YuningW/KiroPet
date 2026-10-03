@@ -1,4 +1,4 @@
-"""Cartoon (vector) versions of the KiroPet mascots, written as SVG.
+"""Cartoon (vector) versions of the ThaiDevPet mascots, written as SVG.
 
 Every mascot shares one layout on a 120 x 136 canvas (viewBox 0 -14 120 136):
 a big wide head, two front paws, a small body and two feet. Parts the

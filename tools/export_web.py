@@ -7,23 +7,55 @@ editing either one:
 
 Writes vscode-extension/media/sprites/<mascot>_<blink><foot>.png (pixel),
 vscode-extension/media/cartoon/<mascot>.svg (cartoon, from tools/cartoon.py),
-vscode-extension/media/props/<action>.png|.svg (activity props) and
-vscode-extension/media/data.json.
+vscode-extension/media/props/<action>.png|.svg (activity props),
+vscode-extension/media/scenes/<scene>.svg|.png (backgrounds, from tools/scenes.py;
+needs Chrome for the pixel versions) and vscode-extension/media/data.json.
 """
 import json
 import os
+import subprocess
 import sys
+import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 
 import cartoon as C  # noqa: E402
+import scenes as SC  # noqa: E402
 import sprites as S  # noqa: E402
 import thai_vocab as TV  # noqa: E402
 from preview import grid_to_image  # noqa: E402
 
 MEDIA = os.path.join(ROOT, "vscode-extension", "media")
+CHROME = os.environ.get(
+    "CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+PIXEL = 2                                  # pixel scenes: 1 art pixel = 2 screen px
+
+
+def render_pixel_scenes(svgs, outdir):
+    """Pixel versions of the scenes: render each SVG with headless Chrome,
+    shrink 2x, cut to a 32-colour palette. Shown 2x with crisp pixels."""
+    from PIL import Image
+    ids = list(svgs)
+    html = "".join(
+        f'<div style="position:absolute;left:0;top:{i * SC.H}px;width:{SC.W}px;height:{SC.H}px">'
+        + svgs[sid].replace("<svg ", f'<svg width="{SC.W}" height="{SC.H}" ', 1) + "</div>"
+        for i, sid in enumerate(ids))
+    with tempfile.TemporaryDirectory() as tmp:
+        page, shot = os.path.join(tmp, "p.html"), os.path.join(tmp, "p.png")
+        with open(page, "w", encoding="utf-8") as f:
+            f.write(f'<html><body style="margin:0">{html}</body></html>')
+        subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars",
+                        f"--window-size={SC.W},{SC.H * len(ids)}", f"--screenshot={shot}",
+                        f"file://{page}"], check=True, capture_output=True)
+        sheet = Image.open(shot).convert("RGB")
+    os.makedirs(outdir, exist_ok=True)
+    for i, sid in enumerate(ids):
+        im = sheet.crop((0, i * SC.H, SC.W, (i + 1) * SC.H))
+        im = im.resize((SC.W // PIXEL, SC.H // PIXEL), Image.BOX)
+        im = im.quantize(32, method=0).convert("RGB")
+        im.save(os.path.join(outdir, f"{sid}.png"))
 
 
 def main():
@@ -54,6 +86,17 @@ def main():
         with open(os.path.join(props, f"{action}.svg"), "w", encoding="utf-8") as f:
             f.write(C.prop_svg(action))
 
+    # background scenes: cartoon SVG + pixel PNG
+    scene_dir = os.path.join(MEDIA, "scenes")
+    os.makedirs(scene_dir, exist_ok=True)
+    for f in os.listdir(scene_dir):
+        os.remove(os.path.join(scene_dir, f))
+    scene_svgs = {sid: spec[2]() for sid, spec in SC.SCENES.items()}
+    for sid, svg in scene_svgs.items():
+        with open(os.path.join(scene_dir, f"{sid}.svg"), "w", encoding="utf-8") as f:
+            f.write(svg)
+    render_pixel_scenes(scene_svgs, scene_dir)
+
     # 128x128 marketplace / extensions-list icon
     from PIL import Image
     icon = Image.new("RGBA", (128, 128), (0, 0, 0, 0))
@@ -66,13 +109,22 @@ def main():
                      "group": "GMMTV" if m in S.GMM else "Classic"}
                     for m in S.MASCOTS],
         "actions": [{"id": a, "label": S.ACTION_LABELS[a]} for a in S.ACTIONS],
+        "categories": [{"id": c, "label": label} for c, label in SC.CATEGORIES],
+        "scenes": [{"id": sid, "label": label, "category": cat, "top": top, "floor": floor,
+                    "group": group, "acts": SC.SCENE_ACTIVITIES.get(sid, []),
+                    "moves": SC.GROUP_STYLE.get(sid, "hangout")}
+                   for sid, (label, cat, _, top, floor, group) in SC.SCENES.items()],
+        "sceneWords": {sid: [list(w) for w in words]
+                       for sid, words in TV.SCENE_WORDS.items()},
         "levels": [{"id": key, "name": name,
                     "words": [list(w) for w in words]}
                    for key, name, words in TV.LEVELS],
     }
     with open(os.path.join(MEDIA, "data.json"), "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
-    print(f"exported {len(S.MASCOTS)} mascots, {len(TV.VOCAB)} words -> {MEDIA}")
+    extra = sum(len(w) for w in TV.SCENE_WORDS.values())
+    print(f"exported {len(S.MASCOTS)} mascots, {len(SC.SCENES)} scenes, "
+          f"{len(TV.VOCAB)} + {extra} scene words -> {MEDIA}")
 
 
 if __name__ == "__main__":

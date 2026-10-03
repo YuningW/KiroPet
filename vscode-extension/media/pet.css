@@ -16,15 +16,39 @@ html, body {
   overflow: hidden;
 }
 
-#pet {
+/* Background scene: 480x150 art anchored to the bottom centre. The scene's
+   top colour fills any space above it and its floor colour any space to the
+   sides, so it fits every panel size. "Soft" fades it into the theme. */
+#scene { position: absolute; inset: 0; }
+#scene[hidden] { display: none; }
+#scene .floor { position: absolute; left: 0; right: 0; bottom: 0; height: 22px; }
+#scene .art {
+  position: absolute; bottom: 0; left: 50%;
+  width: 480px; height: 150px; transform: translateX(-50%);
+}
+#scene.pixel .art { image-rendering: pixelated; }
+#scene .fade {
+  position: absolute; inset: 0; opacity: 0;
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background, #252526));
+}
+#scene.soft .fade { opacity: 0.5; }
+body.has-scene #ground { display: none; }
+body.has-scene #info span {
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--vscode-editorWidget-background, rgba(37, 37, 38, 0.85));
+}
+
+/* Every buddy (the main one and party guests) is a .pet. */
+.pet {
   position: absolute;
   left: 0;
   bottom: 22px;
   cursor: pointer;
 }
 
-/* Inner wrapper so gestures compose with the walk/flip transform on #pet. */
-#actor {
+/* Inner wrapper so gestures compose with the walk/flip transform on .pet. */
+.actor {
   position: relative;
   width: 100%;
   height: 100%;
@@ -32,24 +56,24 @@ html, body {
 }
 
 /* Pixel style: 44x48 PNG frames at 0.75x (~60% of the old 1.25x). */
-#pet.pixel { width: 33px; height: 36px; transform-origin: 16.5px 18px; }
-#pet.pixel #pix { display: block; width: 33px; height: 36px; image-rendering: pixelated; }
-#pet.pixel #vec { display: none; }
+.pet.pixel { width: 33px; height: 36px; transform-origin: 16.5px 18px; }
+.pet.pixel .pix { display: block; width: 33px; height: 36px; image-rendering: pixelated; }
+.pet.pixel .vec { display: none; }
 
 /* Cartoon style: inline SVG, parts animated by class. ~60% of old 52x59. */
-#pet.cartoon { width: 31px; height: 35px; transform-origin: 15.5px 18px; }
-#pet.cartoon #pix { display: none; }
-#vec svg { display: block; width: 31px; height: 35px; overflow: visible; }
-#vec.blink #eyes-open { visibility: hidden; }
-#vec.blink #eyes-closed { visibility: visible; }
-#vec #foot-l, #vec #foot-r { transition: transform 0.12s; }
-#vec.step-l #foot-l, #vec.step-r #foot-r { transform: translateY(-3px); }
+.pet.cartoon { width: 31px; height: 35px; transform-origin: 15.5px 18px; }
+.pet.cartoon .pix { display: none; }
+.vec svg { display: block; width: 31px; height: 35px; overflow: visible; }
+.vec.blink #eyes-open { visibility: hidden; }
+.vec.blink #eyes-closed { visibility: visible; }
+.vec #foot-l, .vec #foot-r { transition: transform 0.12s; }
+.vec.step-l #foot-l, .vec.step-r #foot-r { transform: translateY(-3px); }
 
 /* Activity props: wide overlays in the mascot's own coordinates (0.6x). */
-#prop { position: absolute; pointer-events: none; }
-#prop[hidden] { display: none; }
-#pet.pixel #prop { left: -6px; top: -4.5px; width: 60px; height: 42px; image-rendering: pixelated; }
-#pet.cartoon #prop { left: -5.2px; top: 0; width: 52px; height: 35px; }
+.prop { position: absolute; pointer-events: none; }
+.prop[hidden] { display: none; }
+.pet.pixel .prop { left: -6px; top: -4.5px; width: 60px; height: 42px; image-rendering: pixelated; }
+.pet.cartoon .prop { left: -5.2px; top: 0; width: 52px; height: 35px; }
 
 /* Gestures */
 .g-wiggle { animation: wiggle 0.45s ease-in-out 2; }
@@ -91,6 +115,16 @@ html, body {
   z-index: 3;
 }
 #tip[hidden] { display: none; }
+
+/* Little bursts in group scenes (water splashes, hearts) */
+.burst {
+  position: absolute;
+  bottom: 50px;
+  font-size: 11px;
+  pointer-events: none;
+  animation: heart 1.2s ease-out forwards;
+}
+.burst.love { color: #ff6f91; }
 
 /* Little heart when you click the buddy */
 .heart {
@@ -159,6 +193,12 @@ html, body {
 }
 
 #bubble[hidden] { display: none; }
+#bubble.fresh { animation: fresh 0.6s ease-out; }
+@keyframes fresh {
+  0% { transform: translateX(-50%) scale(0.92); opacity: 0.3; }
+  60% { transform: translateX(-50%) scale(1.04); opacity: 1; }
+  100% { transform: translateX(-50%) scale(1); }
+}
 
 #thai {
   font-size: 11px;

@@ -1,87 +1,268 @@
-// Webview side: walks the buddy along the panel, plays activities and
-// gestures, shows the Thai word card and the timer / work-time footer.
-// Word choice and timers live in extension.js; this file only renders.
-// Two art styles: "pixel" swaps PNG frames, "cartoon" inlines an SVG and
-// animates its #eyes-* / #foot-* parts. Activity props are overlay images.
+// Webview side: draws the background scene, walks the buddy along the panel,
+// plays activities and gestures, runs the stage / party choreography for
+// group scenes, and shows the Thai word card and the timer footer.
+// Word choice, scenes and timers are decided in extension.js; this file only
+// renders. Two art styles: "pixel" swaps PNG frames, "cartoon" inlines an SVG
+// and animates its #eyes-* / #foot-* parts. Activity props are overlay images.
 (function () {
   const vscode = acquireVsCodeApi();
   const $ = id => document.getElementById(id);
-  const stage = $('stage'), pet = $('pet'), actor = $('actor');
-  const pix = $('pix'), vec = $('vec'), prop = $('prop');
+  const stage = $('stage'), scene = $('scene');
   const bubble = $('bubble'), zzz = $('zzz'), tip = $('tip');
 
   const FPS = 30;
   const SLEEP_AFTER = 45 * FPS;    // nap after the editor loses focus this long
-  const BUBBLE_HOLD = 15 * FPS;
   const GESTURES = ['wiggle', 'dance', 'spin', 'stretch', 'nod'];
   const ALARM_MAX = 60 * FPS;      // stop ringing on its own after a minute
+  const SLOT_GAP = 40;             // spacing between buddies in group scenes
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = list => list[Math.floor(Math.random() * list.length)];
+  const asset = (base, file) => `${base}/${file}?v=${window.STAMP}`;
+
+  // ------------------------------------------------------------ one buddy
+  class Actor {
+    constructor(el) {
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'pet';
+        el.innerHTML = '<div class="actor"><img class="pix" alt="" draggable="false">'
+          + '<div class="vec"></div><img class="prop" alt="" draggable="false" hidden></div>';
+        stage.insertBefore(el, $('ground'));
+      }
+      this.el = el;
+      this.actor = el.querySelector('.actor');
+      this.pix = el.querySelector('.pix');
+      this.vec = el.querySelector('.vec');
+      this.prop = el.querySelector('.prop');
+      this.mascot = '';
+      this.style = '';
+      this.action = null;
+      this.x = 20;
+      this.dir = 1;
+      this.walk = 0;
+      this.hop = 0;
+      this.blink = 0;
+      this.nextBlink = rand(30, 150);
+      this.target = null;          // group scenes: x to walk to
+      this.holdGesture = false;    // keep a looping gesture (alarm shake)
+      this.actor.addEventListener('animationend', () => {
+        if (!this.holdGesture) this.actor.className = 'actor';
+      });
+    }
+
+    setArt(mascot, style, svg) {
+      if (mascot === this.mascot && style === this.style) return;
+      this.mascot = mascot;
+      this.style = style;
+      this.el.classList.toggle('cartoon', style === 'cartoon');
+      this.el.classList.toggle('pixel', style !== 'cartoon');
+      this.vec.innerHTML = style === 'cartoon' ? (svg || '') : '';
+      this.pix.removeAttribute('src');
+      this.setProp(this.action);
+    }
+
+    frame(blink, foot) {
+      return asset(window.SPRITES, `${this.mascot}_${blink}${foot}.png`);
+    }
+
+    setProp(action) {
+      this.action = action;
+      if (!action) { this.prop.hidden = true; return; }
+      this.prop.src = asset(window.PROPS, `${action}.${this.style === 'cartoon' ? 'svg' : 'png'}`);
+      this.prop.hidden = false;
+    }
+
+    gesture(name) {
+      name = name || pick(GESTURES);
+      this.actor.className = 'actor';
+      void this.actor.offsetWidth;               // restart the CSS animation
+      this.actor.className = `actor g-${name}`;
+    }
+
+    get width() { return this.el.offsetWidth || 31; }
+
+    // blink timer; returns true while the eyes are shut
+    tickBlink() {
+      if (this.blink > 0) this.blink--;
+      else if (--this.nextBlink <= 0) { this.blink = 6; this.nextBlink = rand(45, 150); }
+      if (this.hop > 0) this.hop--;
+      return this.blink > 0;
+    }
+
+    render(moving, closed) {
+      const foot = moving ? Math.floor(this.walk) % 2 : 0;
+      let bob = 0;
+      if (this.style === 'cartoon') {
+        this.vec.classList.toggle('blink', closed);
+        this.vec.classList.toggle('step-l', moving && foot === 0);
+        this.vec.classList.toggle('step-r', moving && foot === 1);
+        bob = moving ? foot : 0;                 // gentle bounce per step
+      } else {
+        const src = this.frame(closed ? 1 : 0, foot);
+        if (this.pix.getAttribute('src') !== src) this.pix.setAttribute('src', src);
+      }
+      const hopY = this.hop > 0 ? Math.round(12 * (1 - ((this.hop - 7) / 7) ** 2)) : 0;
+      this.el.style.transform =
+        `translate(${Math.round(this.x)}px, ${-hopY - bob}px) scaleX(${this.dir < 0 ? -1 : 1})`;
+    }
+
+    remove() { this.el.remove(); }
+  }
+
+  const main = new Actor($('pet'));
+  let guests = [];                 // extra buddies in group scenes
 
   const st = {
-    mascot: '', style: 'cartoon', quiz: false, levelName: '', actions: [],
-    x: 20, dir: 1, walk: 0, pause: 0, sprint: 0, hop: 0,
-    blink: 0, nextBlink: 60, focused: true, unfocused: 0, sleeping: false,
-    bubbleHold: 0, revealed: true,
-    action: null, actT: 0, alarm: 0, hovering: false,
-    clock: {},
+    quiz: false, levelName: '', actions: [], scene: null,
+    pause: 0, sprint: 0,
+    focused: true, unfocused: 0, sleeping: false,
+    revealed: true, showCard: true, word: null,
+    actT: 0, alarm: 0, hovering: false,
+    clock: {}, choreo: 0, cast: [],
   };
 
-  const cache = {};
-  function frame(blink, foot) {
-    const src = `${window.SPRITES}/${st.mascot}_${blink}${foot}.png?v=${window.STAMP}`;
-    if (!cache[src]) { const i = new Image(); i.src = src; cache[src] = i; }
-    return src;
+  // ------------------------------------------------------------ background
+  function setScene(sc, style) {
+    st.scene = sc;
+    document.body.classList.toggle('has-scene', !!sc);
+    if (!sc) { scene.hidden = true; return; }
+    scene.hidden = false;
+    scene.className = `${style === 'cartoon' ? 'cartoon' : 'pixel'}${sc.strength === 'soft' ? ' soft' : ''}`;
+    scene.style.background = sc.top;
+    scene.querySelector('.floor').style.background = sc.floor;
+    const art = scene.querySelector('.art');
+    const src = asset(window.SCENES, `${sc.id}.${style === 'cartoon' ? 'svg' : 'png'}`);
+    if (art.getAttribute('src') !== src) art.setAttribute('src', src);
   }
 
-  function setArt(mascot, style, svg) {
-    st.mascot = mascot;
-    st.style = style;
-    pet.className = style;
-    if (style === 'cartoon') {
-      vec.innerHTML = svg || '';
-    } else {
-      vec.innerHTML = '';
-      for (const b of [0, 1]) for (const f of [0, 1]) frame(b, f);
+  const grouped = () => guests.length > 0;
+
+  function setGuests(list, style) {
+    const ids = list.map(g => g.mascot).join();
+    const changed = ids !== guests.map(g => g.mascot).join();
+    if (changed) {
+      guests.forEach(g => g.remove());
+      guests = list.map(() => new Actor());
+      guests.forEach(g => {
+        g.el.addEventListener('click', () => poke(g));
+        g.x = main.x;
+      });
     }
-    showProp();
+    list.forEach((g, i) => guests[i].setArt(g.mascot, style, g.svg));
+    // line-up: main buddy in the middle
+    st.cast = guests.length ? [guests[0], main, ...guests.slice(1)] : [main];
+    if (changed && grouped()) { stopAction(); placeCast(); }
   }
 
-  // ---- activities & gestures
-  function showProp() {
-    if (!st.action) { prop.hidden = true; return; }
-    prop.src = `${window.PROPS}/${st.action}.${st.style === 'cartoon' ? 'svg' : 'png'}?v=${window.STAMP}`;
-    prop.hidden = false;
+  function slotX(i) {
+    const n = st.cast.length;
+    return stage.clientWidth / 2 + (i - (n - 1) / 2) * SLOT_GAP - main.width / 2;
   }
 
+  function placeCast() {
+    st.cast.forEach((a, i) => { a.target = slotX(i); });
+    st.choreo = FPS;
+  }
+
+  // Group routines, by the scene's style of moving together:
+  //   dance   (party)     synced moves, ripples, solos, swaps, group hops
+  //   stage   (fanmeet)   synced moves, solos with the others cheering, bows
+  //   splash  (Songkran)  water fight: splashes back and forth, dodging hops
+  //   hangout (bar, Loy Krathong) calm nods, little wiggles, the odd heart
+  const ROUTINES = {
+    dance: ['together', 'together', 'ripple', 'solo', 'swap', 'jump'],
+    stage: ['together', 'ripple', 'solo', 'solo', 'swap', 'bow'],
+    splash: ['splash', 'splash', 'splash', 'jump', 'swap', 'ripple'],
+    hangout: ['nod', 'nod', 'heart', 'wiggle', 'swap', 'rest'],
+  };
+
+  function burst(a, text, cls) {
+    const p = document.createElement('div');
+    p.className = `burst ${cls || ''}`;
+    p.textContent = text;
+    p.style.left = `${Math.round(a.x + a.width / 2 - 6 + rand(-6, 6))}px`;
+    stage.appendChild(p);
+    setTimeout(() => p.remove(), 1200);
+  }
+
+  function choreograph() {
+    const cast = st.cast;
+    const moves = (st.scene && st.scene.moves) || 'dance';
+    const r = pick(ROUTINES[moves] || ROUTINES.dance);
+    let pause = rand(1.8, 3.2);
+    if (r === 'together') {
+      const g = pick(moves === 'dance' ? ['dance', 'wiggle', 'spin'] : ['dance', 'nod', 'wiggle']);
+      cast.forEach(a => a.gesture(g));
+    } else if (r === 'ripple') {
+      const g = pick(['wiggle', 'spin', 'dance']);
+      cast.forEach((a, i) => setTimeout(() => a.gesture(g), i * 220));
+    } else if (r === 'solo') {
+      const star = pick(cast);
+      star.hop = 14;
+      star.gesture(pick(['spin', 'dance']));
+      cast.filter(a => a !== star).forEach(a => setTimeout(() => a.gesture('nod'), 300));
+    } else if (r === 'swap' && cast.length > 1) {
+      const i = Math.floor(Math.random() * (cast.length - 1));
+      [cast[i], cast[i + 1]] = [cast[i + 1], cast[i]];
+      placeCast();
+      return;
+    } else if (r === 'jump') {
+      cast.forEach((a, i) => setTimeout(() => { a.hop = 14; }, i * 120));
+    } else if (r === 'bow') {
+      cast.forEach(a => a.gesture('stretch'));
+    } else if (r === 'splash') {             // one splashes, the target dodges
+      const from = pick(cast);
+      const to = pick(cast.filter(a => a !== from)) || from;
+      from.dir = to.x > from.x ? 1 : -1;
+      from.gesture('nod');
+      burst(from, '💦', 'water');
+      setTimeout(() => { to.hop = 14; to.gesture('wiggle'); burst(to, '💧', 'water'); }, 350);
+      pause = rand(1.2, 2.2);
+    } else if (r === 'nod') {
+      cast.forEach((a, i) => setTimeout(() => a.gesture('nod'), i * 400));
+      pause = rand(3, 5);
+    } else if (r === 'heart') {
+      const a = pick(cast);
+      a.gesture('wiggle');
+      burst(a, '♥', 'love');
+      pause = rand(3, 5);
+    } else if (r === 'wiggle') {
+      pick(cast).gesture('wiggle');
+      pause = rand(3, 5);
+    } else {                                     // rest: just enjoy the view
+      pause = rand(4, 6);
+    }
+    st.choreo = Math.round(pause * FPS);
+  }
+
+  // ------------------------------------------------------------ activities
   function startAction(id, seconds) {
-    st.action = id;
+    main.setProp(id);
     st.actT = seconds * FPS;
     st.pause = 0;
     // turn away from a nearby wall so side props aren't cut off
-    const room = stage.clientWidth - pet.offsetWidth;
-    if (st.dir > 0 && st.x > room - 40) st.dir = -1;
-    if (st.dir < 0 && st.x < 40) st.dir = 1;
-    showProp();
+    const room = stage.clientWidth - main.width;
+    if (main.dir > 0 && main.x > room - 40) main.dir = -1;
+    if (main.dir < 0 && main.x < 40) main.dir = 1;
   }
 
   function stopAction() {
-    st.action = null;
+    main.setProp(null);
     st.actT = 0;
-    showProp();
   }
 
-  function gesture(name) {
-    name = name || GESTURES[Math.floor(Math.random() * GESTURES.length)];
-    actor.className = '';
-    void actor.offsetWidth;                      // restart the CSS animation
-    actor.className = `g-${name}`;
+  // the scene's favourite activities come up more often
+  function randomActivity() {
+    const ids = st.actions.map(a => a.id);
+    const fav = ((st.scene && st.scene.acts) || []).filter(a => ids.includes(a));
+    return fav.length && Math.random() < 0.65 ? pick(fav) : pick(ids);
   }
-  actor.addEventListener('animationend', () => { if (!st.alarm) actor.className = ''; });
 
-  function heartPop() {
+  function heartPop(a) {
     const h = document.createElement('div');
     h.className = 'heart';
     h.textContent = '♥';
-    h.style.left = `${Math.round(st.x + pet.offsetWidth / 2 - 5)}px`;
+    h.style.left = `${Math.round(a.x + a.width / 2 - 5)}px`;
     stage.appendChild(h);
     setTimeout(() => h.remove(), 1100);
   }
@@ -89,25 +270,35 @@
   function label() {
     if (st.alarm) return "⏰ time's up!";
     if (st.sleeping) return 'having a nap · click to wake me';
-    if (st.action) return (st.actions.find(a => a.id === st.action) || {}).label || '';
+    if (main.action) return (st.actions.find(a => a.id === main.action) || {}).label || '';
+    if (grouped()) {
+      return { dance: 'dancing with friends ♪', stage: 'on stage at the fanmeet!',
+        splash: 'water fight! 💦', hangout: 'hanging out with a friend' }[st.scene.moves] || 'with friends';
+    }
     return 'strolling around · click for a Thai word';
   }
 
-  // ---- word card
-  function showWord(w) {
+  // ------------------------------------------------------------ word card
+  // The word card stays up (unless you hide it with the eye button) and the
+  // extension swaps in a new word every few minutes.
+  function showWord(w, hop = true) {
     if (!w) return;
+    st.word = w;
+    bubble.classList.remove('fresh');
+    void bubble.offsetWidth;
+    bubble.classList.add('fresh');                // little flash on each new word
     $('thai').textContent = w.thai;
     $('rom').textContent = w.rom;
     $('eng').textContent = w.eng;
-    $('level').textContent = st.levelName.split(' — ')[0];
+    const lv = st.levelName.split(' — ')[0];
+    $('level').textContent = w.sceneLabel ? `${w.sceneLabel} · ${lv}` : lv;
     st.revealed = !st.quiz;
     bubble.classList.toggle('quiz', !st.revealed);
-    bubble.hidden = false;
-    st.bubbleHold = st.quiz ? Infinity : BUBBLE_HOLD;
-    st.hop = 14;
+    bubble.hidden = !st.showCard;
+    if (hop && st.showCard) main.hop = 14;
   }
 
-  // ---- footer: countdown + worked time
+  // ------------------------------------------------------------ footer
   function fmt(ms) {
     const s = Math.max(0, Math.round(ms / 1000));
     const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
@@ -129,13 +320,13 @@
       t.className = 'due';
     } else if (c.timer) {
       const icon = c.timer.kind === 'alarm' ? '🔔' : '⏱';
-      t.textContent = `${icon} ${fmt(c.timer.end - now)} ${c.timer.label}`;
+      t.textContent = `${icon} ${c.timer.label} · ${fmt(c.timer.end - now)} left`;
       t.className = '';
     } else {
       t.textContent = '';
     }
     if (!c.workStart) { w.textContent = ''; return; }
-    const worked = `💼 ${short(now - c.workStart)}`;
+    const worked = `💼 Worked ${short(now - c.workStart)}`;
     if (!c.breakAt) {
       w.textContent = worked;
       w.className = '';
@@ -148,15 +339,19 @@
     }
   }
 
-  // ---- messages from the extension
+  // ------------------------------------------------------------ messages
   window.addEventListener('message', e => {
     const m = e.data;
     if (m.type === 'state') {
       st.actions = m.actions || [];
-      if (st.action && !st.actions.some(a => a.id === st.action) && !st.alarm) stopAction();
-      if (m.mascot !== st.mascot || m.style !== st.style) setArt(m.mascot, m.style, m.svg);
+      if (main.action && !st.actions.some(a => a.id === main.action) && !st.alarm) stopAction();
+      main.setArt(m.mascot, m.style, m.svg);
+      setScene(m.scene, m.style);
+      setGuests(m.companions || [], m.style);
       st.quiz = m.quiz;
       st.levelName = m.levelName;
+      st.showCard = m.showWord !== false;
+      bubble.hidden = !st.showCard || !st.word;
       setFocus(m.focused);
       if (m.word) { showWord(m.word); }
     } else if (m.type === 'word') {
@@ -167,12 +362,12 @@
       st.clock = m;
       lastFooter = 0;
     } else if (m.type === 'gesture') {
-      gesture(m.name);
+      main.gesture(m.name);
     } else if (m.type === 'activity') {
       if (!st.alarm) {
         if (st.sleeping) setFocus(true);
         startAction(m.id, 12);
-        gesture('nod');
+        main.gesture('nod');
       }
     } else if (m.type === 'alarm') {
       if (m.on) {
@@ -180,12 +375,14 @@
         st.alarmLabel = m.label;
         if (st.sleeping) setFocus(true);
         startAction('alarm', 3600);
-        actor.className = 'g-shake';
+        main.holdGesture = true;
+        main.actor.className = 'actor g-shake';
       } else if (st.alarm) {
         st.alarm = 0;
-        actor.className = '';
+        main.holdGesture = false;
+        main.actor.className = 'actor';
         stopAction();
-        gesture('dance');
+        main.gesture('dance');
       }
       lastFooter = 0;
     }
@@ -194,49 +391,95 @@
   function setFocus(f) {
     if (f && st.sleeping) {
       st.sleeping = false;
-      st.hop = 14;
       zzz.hidden = true;
-      if (st.action === 'sleep') stopAction();
+      st.cast.forEach(a => { a.hop = 14; });
+      if (main.action === 'sleep') stopAction();
     }
     st.focused = f;
     st.unfocused = 0;
   }
 
-  pet.addEventListener('click', () => {
-    st.hop = 14;
-    heartPop();
+  function poke(a) {
+    a.hop = 14;
+    heartPop(a);
     if (st.sleeping) { setFocus(true); return; }
-    if (st.alarm) { vscode.postMessage({ type: 'poke' }); return; }
-    if (st.action && Math.random() < 0.5) stopAction();
-    else if (!st.action && st.actions.length && Math.random() < 0.4) {
-      startAction(st.actions[Math.floor(Math.random() * st.actions.length)].id, 8 + Math.random() * 7);
+    if (a === main && !st.alarm && !grouped()) {
+      if (main.action && Math.random() < 0.5) stopAction();
+      else if (!main.action && st.actions.length && Math.random() < 0.4) {
+        startAction(randomActivity(), 8 + Math.random() * 7);
+      }
     }
-    gesture();
+    if (!st.alarm) a.gesture();
     vscode.postMessage({ type: 'poke' });
-  });
-  pet.addEventListener('mouseenter', () => { st.hovering = true; });
-  pet.addEventListener('mouseleave', () => { st.hovering = false; tip.hidden = true; });
+  }
+
+  main.el.addEventListener('click', () => poke(main));
+  main.el.addEventListener('mouseenter', () => { st.hovering = true; });
+  main.el.addEventListener('mouseleave', () => { st.hovering = false; tip.hidden = true; });
   bubble.addEventListener('click', () => {
     if (!st.revealed) {                          // quiz: reveal the meaning
       st.revealed = true;
       bubble.classList.remove('quiz');
-      st.bubbleHold = 8 * FPS;
     } else {
-      bubble.hidden = true;
+      vscode.postMessage({ type: 'poke' });      // next word
     }
   });
+  window.addEventListener('resize', () => { if (grouped()) placeCast(); });
+
+  // ------------------------------------------------------------ main loop
+  function walkTo(a) {                           // returns true while walking
+    if (a.target === null) return false;
+    const d = a.target - a.x;
+    if (Math.abs(d) <= 1.2) {
+      a.x = a.target;
+      a.target = null;
+      a.dir = a.x + a.width / 2 < stage.clientWidth / 2 ? 1 : -1;   // face the middle
+      return false;
+    }
+    a.dir = d > 0 ? 1 : -1;
+    a.x += a.dir * 1.2;
+    a.walk += 0.15;
+    return true;
+  }
+
+  function tickSolo(width) {
+    const due = st.clock.breakAt && Date.now() >= st.clock.breakAt;
+    if (st.sleeping || st.alarm) return false;
+    if (main.action) {
+      if (--st.actT <= 0) stopAction();
+      else if (Math.random() < 0.003) main.gesture();
+      return false;
+    }
+    if (st.pause > 0) {
+      st.pause--;
+      if (Math.random() < 0.004) main.gesture();
+      return false;
+    }
+    if (st.sprint > 0) st.sprint--;
+    else if (Math.random() < 0.0015) st.sprint = rand(45, 90);
+    const speed = st.sprint > 0 ? 2.2 : 0.8;
+    main.x += main.dir * speed;
+    main.walk += st.sprint > 0 ? 0.25 : 0.12;
+    const max = Math.max(0, width - main.width);
+    if (main.x <= 0) { main.x = 0; main.dir = 1; }
+    if (main.x >= max) { main.x = max; main.dir = -1; }
+    if (!st.sprint && Math.random() < 0.004) st.pause = rand(20, 90);
+    if (!st.sprint && Math.random() < 0.002) main.dir *= -1;
+    // now and then stop for an activity (coffee when a break is due)
+    if (!st.sprint && st.actions.length && Math.random() < (due ? 0.01 : 0.004)) {
+      const id = due && st.actions.some(a => a.id === 'coffee') ? 'coffee' : randomActivity();
+      startAction(id, rand(8, 16));
+    }
+    return true;
+  }
 
   function tick() {
     const width = stage.clientWidth;
-    const petW = pet.offsetWidth;
-    // blink
-    if (st.blink > 0) st.blink--;
-    else if (--st.nextBlink <= 0) { st.blink = 6; st.nextBlink = 45 + Math.random() * 105; }
-    if (st.hop > 0) st.hop--;
 
     // alarm rings for a while, then the buddy gives up
     if (st.alarm > 0 && --st.alarm === 0) {
-      actor.className = '';
+      main.holdGesture = false;
+      main.actor.className = 'actor';
       stopAction();
       lastFooter = 0;
     }
@@ -248,63 +491,28 @@
       stopAction();
     }
 
-    const due = st.clock.breakAt && Date.now() >= st.clock.breakAt;
-    if (st.sleeping || st.alarm) {
-      // stay put
-    } else if (st.action) {
-      if (--st.actT <= 0) stopAction();
-      else if (Math.random() < 0.003) gesture();
-    } else if (st.pause > 0) {
-      st.pause--;
-      if (Math.random() < 0.004) gesture();
-    } else {
-      if (st.sprint > 0) st.sprint--;
-      else if (Math.random() < 0.0015) st.sprint = 45 + Math.random() * 45;
-      const speed = st.sprint > 0 ? 2.2 : 0.8;
-      st.x += st.dir * speed;
-      st.walk += st.sprint > 0 ? 0.25 : 0.12;
-      const max = Math.max(0, width - petW);
-      if (st.x <= 0) { st.x = 0; st.dir = 1; }
-      if (st.x >= max) { st.x = max; st.dir = -1; }
-      if (!st.sprint && Math.random() < 0.004) st.pause = 20 + Math.random() * 70;
-      if (!st.sprint && Math.random() < 0.002) st.dir *= -1;
-      // now and then stop for an activity (coffee when a break is due)
-      if (!st.sprint && st.actions.length && Math.random() < (due ? 0.01 : 0.004)) {
-        const pick = due && st.actions.some(a => a.id === 'coffee') ? 'coffee'
-          : st.actions[Math.floor(Math.random() * st.actions.length)].id;
-        startAction(pick, 8 + Math.random() * 8);
+    if (grouped()) {
+      let walking = false;
+      for (const a of st.cast) {
+        const moving = !st.sleeping && walkTo(a);
+        walking = walking || moving;
+        a.render(moving, a.tickBlink() || st.sleeping);
       }
-    }
-
-    const moving = !st.action && st.pause === 0 && !st.sleeping && !st.alarm;
-    const foot = moving ? Math.floor(st.walk) % 2 : 0;
-    const closed = st.blink > 0 || st.sleeping || st.action === 'sleep' ? 1 : 0;
-    let bob = 0;
-    if (st.style === 'cartoon') {
-      vec.classList.toggle('blink', !!closed);
-      vec.classList.toggle('step-l', moving && foot === 0);
-      vec.classList.toggle('step-r', moving && foot === 1);
-      bob = moving ? foot : 0;                   // gentle bounce per step
+      if (!walking && !st.sleeping && !st.alarm && --st.choreo <= 0) choreograph();
     } else {
-      const src = frame(closed, foot);
-      if (pix.getAttribute('src') !== src) pix.setAttribute('src', src);
+      const moving = tickSolo(width);
+      const closed = main.tickBlink() || st.sleeping || main.action === 'sleep';
+      main.render(moving, closed);
     }
-
-    const hopY = st.hop > 0 ? Math.round(12 * (1 - ((st.hop - 7) / 7) ** 2)) : 0;
-    pet.style.transform =
-      `translate(${Math.round(st.x)}px, ${-hopY - bob}px) scaleX(${st.dir < 0 ? -1 : 1})`;
-    zzz.style.left = `${Math.round(st.x + petW - 10)}px`;
+    zzz.style.left = `${Math.round(main.x + main.width - 10)}px`;
 
     if (st.hovering) {
       tip.textContent = label();
       tip.hidden = false;
       const tw = tip.offsetWidth;
-      tip.style.left = `${Math.round(Math.min(Math.max(2, st.x + petW / 2 - tw / 2), width - tw - 2))}px`;
+      tip.style.left = `${Math.round(Math.min(Math.max(2, main.x + main.width / 2 - tw / 2), width - tw - 2))}px`;
     }
 
-    if (!bubble.hidden) {
-      if (st.bubbleHold !== Infinity && --st.bubbleHold <= 0) bubble.hidden = true;
-    }
     renderFooter();
   }
 

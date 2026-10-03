@@ -1,4 +1,4 @@
-// KiroPet for VS Code / Kiro: a buddy in the Explorer that teaches Thai,
+// ThaiDevPet for VS Code / Kiro: a buddy in the Explorer that teaches Thai,
 // runs countdown timers / alarms, and nudges you to take breaks.
 // Sprites and words are exported from the Python app by tools/export_web.py.
 const vscode = require('vscode');
@@ -13,9 +13,15 @@ const MASCOT_IDS = DATA.mascots.map(m => m.id);
 const SVGS = Object.fromEntries(MASCOT_IDS.map(id => [id,
   fs.readFileSync(path.join(__dirname, 'media', 'cartoon', `${id}.svg`), 'utf8')]));
 const MIN = 60 * 1000;
+const SCENES = Object.fromEntries(DATA.scenes.map(sc => [sc.id, sc]));
+const SCENE_ICONS = {
+  office: '💼', cafe: '☕', bedroom: '🛏️', rainy: '🌧️',
+  wat_arun: '🛕', market: '🛶', beach: '🏝️', yaowarat: '🏮', tuktuk: '🛺',
+  songkran: '💦', loykrathong: '🪷', stage: '🎤', party: '🪩', bar: '🍸',
+};
 
 function cfg() {
-  return vscode.workspace.getConfiguration('kiropet');
+  return vscode.workspace.getConfiguration('thaidevpet');
 }
 
 // Falls back to MuvMuv if the setting names a buddy that was removed.
@@ -56,6 +62,19 @@ function parseClock(text) {
   return d;
 }
 
+// Scene words follow your level too; if a scene has none at that level,
+// all of its words are used.
+function sceneWordsFor(sceneId, level) {
+  const all = (DATA.sceneWords[sceneId] || []).map(([thai, rom, eng, lv]) =>
+    ({ thai, rom, eng, level: lv, scene: sceneId }));
+  const mine = level === 'all' ? all : all.filter(w => w.level === level);
+  return mine.length ? mine : all;
+}
+
+function pickRandom(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
 // Shuffle bag: every word once, in random order, before any repeats.
 class Shuffler {
   constructor(words) { this.words = words; this.bag = []; }
@@ -88,12 +107,19 @@ class PetView {
     this.blurredAt = vscode.window.state.focused ? undefined : Date.now();
 
     // countdown timer / alarm, persisted so a reload doesn't lose it
-    this.timer = context.globalState.get('kiropet.timer');
+    this.timer = context.globalState.get('thaidevpet.timer');
+
+    // background scene (fixed, or shuffled within a category)
+    this.sceneId = undefined;
+    this.companions = [];
+    this.sceneDecks = {};
+    this.shuffledAt = 0;
+    this.resolveScene();
 
     this.status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    this.status.command = 'kiropet.nextWord';
+    this.status.command = 'thaidevpet.nextWord';
     this.timerStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 101);
-    this.timerStatus.command = 'kiropet.timer';
+    this.timerStatus.command = 'thaidevpet.timer';
     context.subscriptions.push(this.status, this.timerStatus);
 
     // Count only minutes the editor is focused, like the desktop app only
@@ -102,6 +128,12 @@ class PetView {
       if (!vscode.window.state.focused) return;
       this.focusedMinutes += 1;
       if (this.focusedMinutes >= cfg().get('wordIntervalMinutes')) this.nextWord();
+      const every = cfg().get('sceneShuffleMinutes');
+      if (String(cfg().get('scene')).startsWith('shuffle') && every > 0
+          && Date.now() - this.shuffledAt >= every * MIN) {
+        this.resolveScene(true);
+        this.sendState();
+      }
     }, MIN);
     const clock = setInterval(() => this.clockTick(), 1000);
     context.subscriptions.push({ dispose: () => { clearInterval(words); clearInterval(clock); } });
@@ -118,10 +150,14 @@ class PetView {
         this.post({ type: 'focus', focused: s.focused });
       }),
       vscode.workspace.onDidChangeConfiguration(e => {
-        if (!e.affectsConfiguration('kiropet')) return;
+        if (!e.affectsConfiguration('thaidevpet')) return;
+        if (['scene', 'partyBuddies', 'mascot'].some(k => e.affectsConfiguration(`thaidevpet.${k}`))) {
+          this.resolveScene(e.affectsConfiguration('thaidevpet.scene'));
+        }
         if (cfg().get('thaiLevel') !== this.level) {
           this.level = cfg().get('thaiLevel');
           this.deck = new Shuffler(wordsFor(this.level));
+          this.sceneDecks = {};
           this.nextWord();
         }
         this.sendState();
@@ -156,11 +192,95 @@ class PetView {
       svg: style() === 'cartoon' ? SVGS[mascot()] : undefined,
       actions: cfg().get('activities') ? DATA.actions : [],
       quiz: cfg().get('quizMode'),
+      showWord: cfg().get('showWord'),
       levelName: LEVEL_NAMES[this.level] || 'All levels',
       focused: vscode.window.state.focused,
       word: withWord ? this.word : undefined,
+      scene: this.sceneId ? { ...SCENES[this.sceneId], strength: cfg().get('sceneStrength') } : null,
+      companions: this.companions.map(m => ({
+        mascot: m, svg: style() === 'cartoon' ? SVGS[m] : undefined,
+      })),
     });
     this.sendClock();
+  }
+
+  // ---- background scenes
+  // thaidevpet.scene: "none", a scene id, "shuffle" (everything) or
+  // "shuffle:<category>". Shuffles pick a different scene each time.
+  resolveScene(reshuffle = false) {
+    const setting = String(cfg().get('scene') || 'none');
+    let id;
+    if (setting.startsWith('shuffle')) {
+      const cat = setting.split(':')[1];
+      const pool = DATA.scenes.filter(sc => !cat || sc.category === cat).map(sc => sc.id);
+      if (!reshuffle && pool.includes(this.sceneId)) {
+        id = this.sceneId;
+      } else {
+        const others = pool.filter(p => p !== this.sceneId);
+        id = pickRandom(others.length ? others : pool);
+        this.shuffledAt = Date.now();
+      }
+    } else {
+      id = SCENES[setting] ? setting : undefined;
+    }
+    this.sceneId = id;
+    // party guests: your picks first, then random friends (never the main buddy)
+    const group = id ? SCENES[id].group : 1;
+    const main = mascot();
+    const wanted = (cfg().get('partyBuddies') || []).filter(m => MASCOT_IDS.includes(m) && m !== main);
+    const keep = this.companions.filter(m => m !== main && !wanted.includes(m));
+    const pool = MASCOT_IDS.filter(m => m !== main && !wanted.includes(m) && !keep.includes(m));
+    const out = [...wanted, ...keep];
+    while (out.length < group - 1 && pool.length) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    this.companions = out.slice(0, Math.max(0, group - 1));
+  }
+
+  async sceneCommand() {
+    const current = String(cfg().get('scene'));
+    const strength = cfg().get('sceneStrength');
+    const mark = (id, label) => (id === current ? `$(check) ${label}` : label);
+    const items = [
+      { label: mark('none', '$(circle-slash) No background'), id: 'none' },
+      { label: mark('shuffle', '$(sync) Shuffle everything'), id: 'shuffle' },
+    ];
+    for (const cat of DATA.categories) {
+      items.push({ label: cat.label, kind: vscode.QuickPickItemKind.Separator });
+      items.push({ label: mark(`shuffle:${cat.id}`, `$(sync) Shuffle ${cat.label}`), id: `shuffle:${cat.id}` });
+      for (const sc of DATA.scenes.filter(x => x.category === cat.id)) {
+        items.push({
+          label: mark(sc.id, `${SCENE_ICONS[sc.id] || ''} ${sc.label}`), id: sc.id,
+          description: sc.group > 1 ? `${sc.group} buddies together` : '',
+        });
+      }
+    }
+    items.push({ label: 'Options', kind: vscode.QuickPickItemKind.Separator },
+      { label: `$(eye) Background: ${strength === 'soft' ? 'Soft' : 'Full colour'} — switch to ${strength === 'soft' ? 'full colour' : 'soft'}`, id: 'strength' },
+      { label: '$(person-add) Party buddies…', id: 'buddies' });
+    const shown = this.sceneId ? SCENES[this.sceneId].label : 'none';
+    const pick = await vscode.window.showQuickPick(items, { placeHolder: `Background (now: ${shown})` });
+    if (!pick) return;
+    const G = vscode.ConfigurationTarget.Global;
+    if (pick.id === 'strength') return cfg().update('sceneStrength', strength === 'soft' ? 'full' : 'soft', G);
+    if (pick.id === 'buddies') return this.buddiesCommand();
+    if (pick.id === current && current.startsWith('shuffle')) {   // re-roll
+      this.resolveScene(true);
+      return this.sendState();
+    }
+    await cfg().update('scene', pick.id, G);
+  }
+
+  async buddiesCommand() {
+    const main = mascot();
+    const chosen = cfg().get('partyBuddies') || [];
+    const items = DATA.mascots.filter(m => m.id !== main).map(m => ({
+      label: m.label, id: m.id, picked: chosen.includes(m.id),
+    }));
+    const pick = await vscode.window.showQuickPick(items, {
+      canPickMany: true,
+      placeHolder: 'Who joins the stage / party? Pick up to 2 (none = surprise me)',
+    });
+    if (!pick) return;
+    await cfg().update('partyBuddies', pick.slice(0, 2).map(p => p.id), vscode.ConfigurationTarget.Global);
   }
 
   // The webview renders the countdowns itself from these timestamps.
@@ -177,7 +297,13 @@ class PetView {
   // ---- Thai words
   nextWord(announce = true) {
     this.focusedMinutes = 0;
-    this.word = this.deck.next();
+    const sid = this.sceneId;
+    if (sid && cfg().get('sceneWords') && DATA.sceneWords[sid] && Math.random() < 0.4) {
+      if (!this.sceneDecks[sid]) this.sceneDecks[sid] = new Shuffler(sceneWordsFor(sid, this.level));
+      this.word = { ...this.sceneDecks[sid].next(), sceneLabel: `${SCENE_ICONS[sid] || ''} ${SCENES[sid].label}` };
+    } else {
+      this.word = this.deck.next();
+    }
     this.renderStatus();
     if (announce) this.post({ type: 'word', word: this.word });
   }
@@ -191,7 +317,7 @@ class PetView {
     this.status.text = `$(comment) ${w.thai}  ${w.rom}`;
     this.status.tooltip = new vscode.MarkdownString(
       `### ${w.thai}\n\n*${w.rom}*\n\n**${w.eng}**\n\n` +
-      `${LEVEL_NAMES[w.level]} · click for the next word`);
+      `${w.sceneLabel ? `${w.sceneLabel} · ` : ''}${LEVEL_NAMES[w.level]} · click for the next word`);
     this.status.show();
   }
 
@@ -217,7 +343,7 @@ class PetView {
     if (this.timer) {
       const icon = this.timer.kind === 'alarm' ? '$(bell)' : '$(watch)';
       this.timerStatus.text = `${icon} ${fmt(this.timer.end - now)} ${this.timer.label}`;
-      this.timerStatus.tooltip = 'KiroPet timer · click to add time or cancel';
+      this.timerStatus.tooltip = 'ThaiDevPet timer · click to add time or cancel';
       this.timerStatus.show();
     } else {
       this.timerStatus.hide();
@@ -240,7 +366,7 @@ class PetView {
 
   setTimer(timer) {
     this.timer = timer;
-    this.context.globalState.update('kiropet.timer', timer);
+    this.context.globalState.update('thaidevpet.timer', timer);
     this.sendClock();
     this.clockTick();
   }
@@ -339,20 +465,21 @@ class PetView {
 </head>
 <body data-vscode-context='{"preventDefaultContextMenuItems": true}'>
 <div id="stage">
+  <div id="scene" hidden><div class="floor"></div><img class="art" alt=""><div class="fade"></div></div>
   <div id="bubble" hidden>
     <div><span id="thai"></span><span id="rom"></span></div>
     <div><span id="eng"></span><span id="level"></span></div>
   </div>
   <div id="zzz" hidden>z z z</div>
   <div id="tip" hidden></div>
-  <div id="pet"><div id="actor">
-    <img id="pix" alt="pet" draggable="false"><div id="vec"></div>
-    <img id="prop" alt="" draggable="false" hidden>
+  <div id="pet" class="pet"><div class="actor">
+    <img class="pix" alt="pet" draggable="false"><div class="vec"></div>
+    <img class="prop" alt="" draggable="false" hidden>
   </div></div>
   <div id="ground"></div>
   <div id="info"><span id="timer"></span><span id="work"></span></div>
 </div>
-<script nonce="${nonce}">window.SPRITES = "${uri('sprites')}"; window.PROPS = "${uri('props')}"; window.STAMP = "${stamp}";</script>
+<script nonce="${nonce}">window.SPRITES = "${uri('sprites')}"; window.PROPS = "${uri('props')}"; window.SCENES = "${uri('scenes')}"; window.STAMP = "${stamp}";</script>
 <script nonce="${nonce}" src="${uri('pet.js')}?v=${stamp}"></script>
 </body>
 </html>`;
@@ -375,7 +502,7 @@ class ScreenPet {
       if (fs.existsSync(p)) return p;
     }
     const pick = await vscode.window.showOpenDialog({
-      title: 'Where is kiro_pet.py? (the KiroPet folder)',
+      title: 'Where is kiro_pet.py? (the ThaiDevPet folder)',
       canSelectMany: false, filters: { 'Python': ['py'] },
     });
     if (!pick) return undefined;
@@ -411,14 +538,14 @@ class ScreenPet {
       this.proc = undefined;
       if (e.code === 'ENOENT' && candidates.length > 1) return this.start(candidates.slice(1));
       vscode.window.showErrorMessage(
-        `Couldn't start the screen pet with "${python}": ${e.message}. Set kiropet.screenPet.python to your Python (e.g. C:\\...\\pythonw.exe).`);
+        `Couldn't start the screen pet with "${python}": ${e.message}. Set thaidevpet.screenPet.python to your Python (e.g. C:\\...\\pythonw.exe).`);
     });
     proc.on('exit', code => {
       if (this.proc === proc) this.proc = undefined;
       if (Date.now() - startedAt > 5000) return;
       if (code === 0) {
         vscode.window.showInformationMessage(
-          'A screen pet was already running (probably started at Windows login). Remove that startup shortcut so KiroPet controls it.');
+          'A screen pet was already running (probably started at Windows login). Remove that startup shortcut so ThaiDevPet controls it.');
       } else if (code !== null) {
         vscode.window.showErrorMessage(`The screen pet stopped right away (code ${code}). ${err.trim().split('\n').pop() || ''}`);
       }
@@ -432,37 +559,60 @@ class ScreenPet {
 }
 
 const MODES = {
-  panel: { label: '$(layout-sidebar-left) Panel pet', detail: 'Walks inside the KiroPet panel in the Explorer' },
+  panel: { label: '$(layout-sidebar-left) Panel pet', detail: 'Walks inside the ThaiDevPet panel in the Explorer' },
   screen: { label: '$(screen-full) Screen pet', detail: 'Walks around the edge of the editor window (Windows)' },
   both: { label: '$(heart) Both', detail: 'Panel pet and screen pet together' },
   none: { label: '$(circle-slash) Neither', detail: 'No pet for now (timers and Thai words keep working)' },
 };
 
-function activate(context) {
+// One-time move of settings from the old "kiropet" name to "thaidevpet".
+async function migrateSettings(context) {
+  if (context.globalState.get('thaidevpet.migrated')) return;
+  const props = context.extension.packageJSON.contributes.configuration.properties;
+  const before = vscode.workspace.getConfiguration('kiropet');
+  for (const full of Object.keys(props)) {
+    const key = full.replace(/^thaidevpet\./, '');
+    const old = before.inspect(key);
+    const now = cfg().inspect(key);
+    if (old && old.globalValue !== undefined && now && now.globalValue === undefined) {
+      try { await cfg().update(key, old.globalValue, vscode.ConfigurationTarget.Global); } catch (e) { /* skip */ }
+    }
+  }
+  await context.globalState.update('thaidevpet.migrated', true);
+}
+
+async function activate(context) {
+  await migrateSettings(context);
   const pet = new PetView(context);
   const screen = new ScreenPet();
   context.subscriptions.push({ dispose: () => screen.stop() });
 
   const paw = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 102);
   paw.text = '🐾';
-  paw.tooltip = 'KiroPet: choose which pet runs';
-  paw.command = 'kiropet.choosePet';
+  paw.tooltip = 'ThaiDevPet: choose which pet runs';
+  paw.command = 'thaidevpet.choosePet';
   paw.show();
   context.subscriptions.push(paw);
 
+  const syncWordKey = () => vscode.commands.executeCommand('setContext', 'thaidevpet.wordOn', cfg().get('showWord'));
+  syncWordKey();
+  context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(ev => {
+    if (ev.affectsConfiguration('thaidevpet.showWord')) syncWordKey();
+  }));
+
   async function applyMode(mode) {
     const panel = mode === 'panel' || mode === 'both';
-    await vscode.commands.executeCommand('setContext', 'kiropet.panelOn', panel);
+    await vscode.commands.executeCommand('setContext', 'thaidevpet.panelOn', panel);
     if (mode === 'screen' || mode === 'both') await screen.start(); else screen.stop();
-    if (panel) vscode.commands.executeCommand('kiropet.view.focus');
+    if (panel) vscode.commands.executeCommand('thaidevpet.view.focus');
   }
 
   // Nothing starts behind your back: the startup setting decides, and
   // "ask" (the default) offers a choice each time the editor opens.
   const startup = cfg().get('startup');
   if (startup === 'ask') {
-    vscode.commands.executeCommand('setContext', 'kiropet.panelOn', false);
-    vscode.window.showInformationMessage('🐾 Which KiroPet today?',
+    vscode.commands.executeCommand('setContext', 'thaidevpet.panelOn', false);
+    vscode.window.showInformationMessage('🐾 Which ThaiDevPet today?',
       'Panel pet', 'Screen pet', 'Both', 'Not today').then(pick => {
       const mode = { 'Panel pet': 'panel', 'Screen pet': 'screen', 'Both': 'both' }[pick] || 'none';
       applyMode(mode);
@@ -471,10 +621,16 @@ function activate(context) {
     applyMode(startup);
   }
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('kiropet.view', pet,
+    vscode.window.registerWebviewViewProvider('thaidevpet.view', pet,
       { webviewOptions: { retainContextWhenHidden: true } }),
-    vscode.commands.registerCommand('kiropet.nextWord', () => pet.nextWord()),
-    vscode.commands.registerCommand('kiropet.choosePet', async () => {
+    vscode.commands.registerCommand('thaidevpet.nextWord', () => pet.nextWord()),
+    vscode.commands.registerCommand('thaidevpet.toggleWord', () =>
+      cfg().update('showWord', !cfg().get('showWord'), vscode.ConfigurationTarget.Global)),
+    vscode.commands.registerCommand('thaidevpet.hideWord', () =>
+      cfg().update('showWord', false, vscode.ConfigurationTarget.Global)),
+    vscode.commands.registerCommand('thaidevpet.showWord', () =>
+      cfg().update('showWord', true, vscode.ConfigurationTarget.Global)),
+    vscode.commands.registerCommand('thaidevpet.choosePet', async () => {
       const items = Object.entries(MODES).map(([id, m]) => ({ ...m, id }));
       items.push({ label: '', kind: vscode.QuickPickItemKind.Separator },
         { label: '$(gear) What to do when the editor opens…', id: 'startup' });
@@ -491,11 +647,11 @@ function activate(context) {
       const s = await vscode.window.showQuickPick(opts, { placeHolder: 'When the editor opens…' });
       if (s) await cfg().update('startup', s.id, vscode.ConfigurationTarget.Global);
     }),
-    vscode.commands.registerCommand('kiropet.startScreenPet', () => screen.start()),
-    vscode.commands.registerCommand('kiropet.stopScreenPet', () => screen.stop()),
-    vscode.commands.registerCommand('kiropet.timer', () => pet.timerCommand()),
-    vscode.commands.registerCommand('kiropet.breakReminder', () => pet.breakCommand()),
-    vscode.commands.registerCommand('kiropet.activity', async () => {
+    vscode.commands.registerCommand('thaidevpet.startScreenPet', () => screen.start()),
+    vscode.commands.registerCommand('thaidevpet.stopScreenPet', () => screen.stop()),
+    vscode.commands.registerCommand('thaidevpet.timer', () => pet.timerCommand()),
+    vscode.commands.registerCommand('thaidevpet.breakReminder', () => pet.breakCommand()),
+    vscode.commands.registerCommand('thaidevpet.activity', async () => {
       const gestures = ['wiggle', 'dance', 'spin', 'stretch', 'nod'];
       const pick = await vscode.window.showQuickPick([
         { label: 'Activities', kind: vscode.QuickPickItemKind.Separator },
@@ -504,25 +660,25 @@ function activate(context) {
         ...gestures.map(g => ({ label: g, gesture: g })),
       ], { placeHolder: 'What should your buddy do?' });
       if (!pick) return;
-      await vscode.commands.executeCommand('kiropet.view.focus');
+      await vscode.commands.executeCommand('thaidevpet.view.focus');
       pet.post(pick.action ? { type: 'activity', id: pick.action } : { type: 'gesture', name: pick.gesture });
     }),
-    vscode.commands.registerCommand('kiropet.show', async () => {
-      await vscode.commands.executeCommand('setContext', 'kiropet.panelOn', true);
-      vscode.commands.executeCommand('kiropet.view.focus');
+    vscode.commands.registerCommand('thaidevpet.show', async () => {
+      await vscode.commands.executeCommand('setContext', 'thaidevpet.panelOn', true);
+      vscode.commands.executeCommand('thaidevpet.view.focus');
     }),
     // keep a running screen pet in step with buddy / style / level changes
     vscode.workspace.onDidChangeConfiguration(e => {
       if (screen.running && ['mascot', 'style', 'thaiLevel'].some(k =>
-        e.affectsConfiguration(`kiropet.${k}`))) {
+        e.affectsConfiguration(`thaidevpet.${k}`))) {
         screen.stop();
         setTimeout(() => screen.start(), 500);
       }
     }),
-    vscode.commands.registerCommand('kiropet.toggleStyle', () =>
+    vscode.commands.registerCommand('thaidevpet.toggleStyle', () =>
       cfg().update('style', style() === 'cartoon' ? 'pixel' : 'cartoon',
         vscode.ConfigurationTarget.Global)),
-    vscode.commands.registerCommand('kiropet.chooseLevel', async () => {
+    vscode.commands.registerCommand('thaidevpet.chooseLevel', async () => {
       const items = DATA.levels.map(l => ({
         label: l.name, description: `${l.words.length} words`, id: l.id,
       }));
@@ -532,7 +688,9 @@ function activate(context) {
       const pick = await vscode.window.showQuickPick(items, { placeHolder: 'Which Thai level?' });
       if (pick) await cfg().update('thaiLevel', pick.id, vscode.ConfigurationTarget.Global);
     }),
-    vscode.commands.registerCommand('kiropet.changeBuddy', async () => {
+    vscode.commands.registerCommand('thaidevpet.chooseScene', () => pet.sceneCommand()),
+    vscode.commands.registerCommand('thaidevpet.partyBuddies', () => pet.buddiesCommand()),
+    vscode.commands.registerCommand('thaidevpet.changeBuddy', async () => {
       const items = [];
       let group;
       for (const m of DATA.mascots) {

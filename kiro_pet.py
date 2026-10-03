@@ -1,5 +1,5 @@
 """
-Kiro Pet - one cute buddy that walks around your Kiro window.
+ThaiDevPet screen pet - one cute buddy that walks around your Kiro window.
 
 A single mascot patrols the border of the Kiro editor window, following it as
 you move/resize Kiro and hiding when Kiro is gone. It naps when you go idle,
@@ -23,7 +23,7 @@ Usage:
     pythonw kiro_pet.py --level advanced  # Thai level for the word bubble
 
 The VS Code / Kiro extension can start and stop this for you
-(KiroPet: Choose pet…), so it no longer needs to run at login.
+(ThaiDevPet: Choose pet…), so it no longer needs to run at login.
 
 Controls:
     Left-drag   : pick it up

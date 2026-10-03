@@ -1,8 +1,8 @@
 {
-  "name": "kiropet",
-  "displayName": "KiroPet",
-  "description": "A cute GMMTV buddy (cartoon or pixel style) that walks around your editor and teaches you Thai words, one level at a time.",
-  "version": "0.4.1",
+  "name": "thaidevpet",
+  "displayName": "ThaiDevPet",
+  "description": "ThaiDevPet: a cute GMMTV buddy (cartoon or pixel) that hangs out in your editor, teaches Thai words by level and scene, and visits Thai landmarks, festivals and parties.",
+  "version": "0.6.3",
   "publisher": "yuningw",
   "license": "UNLICENSED",
   "engines": {
@@ -29,147 +29,206 @@
       "explorer": [
         {
           "type": "webview",
-          "id": "kiropet.view",
-          "name": "KiroPet",
-          "when": "kiropet.panelOn"
+          "id": "thaidevpet.view",
+          "name": "ThaiDevPet",
+          "when": "thaidevpet.panelOn"
         }
       ]
     },
     "commands": [
       {
-        "command": "kiropet.choosePet",
+        "command": "thaidevpet.hideWord",
+        "title": "Hide Thai word card",
+        "category": "ThaiDevPet",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "thaidevpet.showWord",
+        "title": "Show Thai word card",
+        "category": "ThaiDevPet",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "thaidevpet.toggleWord",
+        "title": "Show / hide Thai word card",
+        "category": "ThaiDevPet"
+      },
+      {
+        "command": "thaidevpet.choosePet",
         "title": "Choose pet (panel / screen / both)…",
-        "category": "KiroPet",
+        "category": "ThaiDevPet",
         "icon": "$(heart)"
       },
       {
-        "command": "kiropet.startScreenPet",
+        "command": "thaidevpet.startScreenPet",
         "title": "Start screen pet (walks around the window)",
-        "category": "KiroPet"
+        "category": "ThaiDevPet"
       },
       {
-        "command": "kiropet.stopScreenPet",
+        "command": "thaidevpet.stopScreenPet",
         "title": "Stop screen pet",
-        "category": "KiroPet"
+        "category": "ThaiDevPet"
       },
       {
-        "command": "kiropet.nextWord",
+        "command": "thaidevpet.nextWord",
         "title": "Next Thai word",
-        "category": "KiroPet",
+        "category": "ThaiDevPet",
         "icon": "$(refresh)"
       },
       {
-        "command": "kiropet.chooseLevel",
+        "command": "thaidevpet.chooseLevel",
         "title": "Choose Thai level",
-        "category": "KiroPet",
+        "category": "ThaiDevPet",
         "icon": "$(mortar-board)"
       },
       {
-        "command": "kiropet.changeBuddy",
+        "command": "thaidevpet.changeBuddy",
         "title": "Change buddy",
-        "category": "KiroPet",
+        "category": "ThaiDevPet",
         "icon": "$(heart)"
       },
       {
-        "command": "kiropet.timer",
+        "command": "thaidevpet.chooseScene",
+        "title": "Background…",
+        "category": "ThaiDevPet",
+        "icon": "$(paintcan)"
+      },
+      {
+        "command": "thaidevpet.partyBuddies",
+        "title": "Party buddies…",
+        "category": "ThaiDevPet",
+        "icon": "$(person-add)"
+      },
+      {
+        "command": "thaidevpet.timer",
         "title": "Timer / alarm…",
-        "category": "KiroPet",
+        "category": "ThaiDevPet",
         "icon": "$(watch)"
       },
       {
-        "command": "kiropet.breakReminder",
+        "command": "thaidevpet.breakReminder",
         "title": "Break reminder…",
-        "category": "KiroPet",
+        "category": "ThaiDevPet",
         "icon": "$(coffee)"
       },
       {
-        "command": "kiropet.activity",
+        "command": "thaidevpet.activity",
         "title": "Do an activity…",
-        "category": "KiroPet",
+        "category": "ThaiDevPet",
         "icon": "$(sparkle)"
       },
       {
-        "command": "kiropet.toggleStyle",
+        "command": "thaidevpet.toggleStyle",
         "title": "Switch art style (pixel / cartoon)",
-        "category": "KiroPet",
+        "category": "ThaiDevPet",
         "icon": "$(color-mode)"
       },
       {
-        "command": "kiropet.show",
+        "command": "thaidevpet.show",
         "title": "Show pet",
-        "category": "KiroPet"
+        "category": "ThaiDevPet"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "kiropet.timer",
-          "when": "view == kiropet.view",
+          "command": "thaidevpet.hideWord",
+          "when": "view == thaidevpet.view && thaidevpet.wordOn",
           "group": "navigation@0"
         },
         {
-          "command": "kiropet.nextWord",
-          "when": "view == kiropet.view",
+          "command": "thaidevpet.showWord",
+          "when": "view == thaidevpet.view && !thaidevpet.wordOn",
+          "group": "navigation@0"
+        },
+        {
+          "command": "thaidevpet.timer",
+          "when": "view == thaidevpet.view",
+          "group": "navigation@0"
+        },
+        {
+          "command": "thaidevpet.nextWord",
+          "when": "view == thaidevpet.view",
           "group": "navigation@1"
         },
         {
-          "command": "kiropet.chooseLevel",
-          "when": "view == kiropet.view",
+          "command": "thaidevpet.chooseLevel",
+          "when": "view == thaidevpet.view",
           "group": "navigation@2"
         },
         {
-          "command": "kiropet.changeBuddy",
-          "when": "view == kiropet.view",
+          "command": "thaidevpet.changeBuddy",
+          "when": "view == thaidevpet.view",
           "group": "navigation@3"
         },
         {
-          "command": "kiropet.toggleStyle",
-          "when": "view == kiropet.view",
+          "command": "thaidevpet.chooseScene",
+          "when": "view == thaidevpet.view",
+          "group": "navigation@3"
+        },
+        {
+          "command": "thaidevpet.toggleStyle",
+          "when": "view == thaidevpet.view",
           "group": "navigation@4"
         }
       ],
       "webview/context": [
         {
-          "command": "kiropet.changeBuddy",
-          "when": "webviewId == 'kiropet.view'",
-          "group": "kiropet@1"
+          "command": "thaidevpet.changeBuddy",
+          "when": "webviewId == 'thaidevpet.view'",
+          "group": "thaidevpet@1"
         },
         {
-          "command": "kiropet.toggleStyle",
-          "when": "webviewId == 'kiropet.view'",
-          "group": "kiropet@2"
+          "command": "thaidevpet.toggleStyle",
+          "when": "webviewId == 'thaidevpet.view'",
+          "group": "thaidevpet@2"
         },
         {
-          "command": "kiropet.chooseLevel",
-          "when": "webviewId == 'kiropet.view'",
-          "group": "kiropet@3"
+          "command": "thaidevpet.chooseScene",
+          "when": "webviewId == 'thaidevpet.view'",
+          "group": "thaidevpet@2"
         },
         {
-          "command": "kiropet.nextWord",
-          "when": "webviewId == 'kiropet.view'",
-          "group": "kiropet@4"
+          "command": "thaidevpet.partyBuddies",
+          "when": "webviewId == 'thaidevpet.view'",
+          "group": "thaidevpet@2"
         },
         {
-          "command": "kiropet.activity",
-          "when": "webviewId == 'kiropet.view'",
-          "group": "kiropet@5"
+          "command": "thaidevpet.chooseLevel",
+          "when": "webviewId == 'thaidevpet.view'",
+          "group": "thaidevpet@3"
         },
         {
-          "command": "kiropet.timer",
-          "when": "webviewId == 'kiropet.view'",
+          "command": "thaidevpet.toggleWord",
+          "when": "webviewId == 'thaidevpet.view'",
+          "group": "thaidevpet@4"
+        },
+        {
+          "command": "thaidevpet.nextWord",
+          "when": "webviewId == 'thaidevpet.view'",
+          "group": "thaidevpet@4"
+        },
+        {
+          "command": "thaidevpet.activity",
+          "when": "webviewId == 'thaidevpet.view'",
+          "group": "thaidevpet@5"
+        },
+        {
+          "command": "thaidevpet.timer",
+          "when": "webviewId == 'thaidevpet.view'",
           "group": "timers@1"
         },
         {
-          "command": "kiropet.breakReminder",
-          "when": "webviewId == 'kiropet.view'",
+          "command": "thaidevpet.breakReminder",
+          "when": "webviewId == 'thaidevpet.view'",
           "group": "timers@2"
         }
       ]
     },
     "configuration": {
-      "title": "KiroPet",
+      "title": "ThaiDevPet",
       "properties": {
-        "kiropet.startup": {
+        "thaidevpet.startup": {
           "type": "string",
           "default": "ask",
           "enum": [
@@ -188,7 +247,7 @@
           ],
           "description": "Which pet starts when the editor opens. Nothing starts on its own unless you pick it here."
         },
-        "kiropet.mascot": {
+        "thaidevpet.mascot": {
           "type": "string",
           "default": "muvmuv",
           "enum": [
@@ -215,7 +274,7 @@
           ],
           "description": "Which buddy walks around."
         },
-        "kiropet.style": {
+        "thaidevpet.style": {
           "type": "string",
           "default": "cartoon",
           "enum": [
@@ -228,7 +287,101 @@
           ],
           "description": "Art style for the buddy."
         },
-        "kiropet.thaiLevel": {
+        "thaidevpet.scene": {
+          "type": "string",
+          "default": "shuffle:everyday",
+          "enum": [
+            "shuffle:everyday",
+            "office",
+            "cafe",
+            "bedroom",
+            "rainy",
+            "shuffle:thailand",
+            "wat_arun",
+            "market",
+            "beach",
+            "yaowarat",
+            "tuktuk",
+            "shuffle:festivals",
+            "songkran",
+            "loykrathong",
+            "shuffle:party",
+            "stage",
+            "party",
+            "bar",
+            "shuffle",
+            "none"
+          ],
+          "enumItemLabels": [
+            "Shuffle: Everyday",
+            "Everyday · Office",
+            "Everyday · Café",
+            "Everyday · Bedroom",
+            "Everyday · Rainy day",
+            "Shuffle: Thailand",
+            "Thailand · Wat Arun",
+            "Thailand · Floating market",
+            "Thailand · Krabi beach",
+            "Thailand · Yaowarat",
+            "Thailand · Tuk-tuk street",
+            "Shuffle: Festivals",
+            "Festivals · Songkran",
+            "Festivals · Loy Krathong",
+            "Shuffle: Party",
+            "Party · SAMTUABAHT Fanmeet",
+            "Party · Dance party",
+            "Party · Rooftop bar",
+            "Shuffle everything",
+            "No background"
+          ],
+          "markdownDescription": "Background behind the panel pet: one scene, a shuffle within a category, or none. Default shuffles **Everyday** (office, café, bedroom, rainy day)."
+        },
+        "thaidevpet.sceneShuffleMinutes": {
+          "type": "number",
+          "default": 30,
+          "minimum": 0,
+          "maximum": 480,
+          "description": "When shuffling, switch to another scene every N minutes (0 = only when the editor opens)."
+        },
+        "thaidevpet.sceneStrength": {
+          "type": "string",
+          "default": "full",
+          "enum": [
+            "full",
+            "soft"
+          ],
+          "enumDescriptions": [
+            "Scene in full colour",
+            "Scene faded into your editor theme"
+          ],
+          "description": "How strong the background is."
+        },
+        "thaidevpet.sceneWords": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mix in Thai words that go with the current scene."
+        },
+        "thaidevpet.partyBuddies": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string",
+            "enum": [
+              "muvmuv",
+              "lunar",
+              "any",
+              "jewel",
+              "vimmy",
+              "wesley",
+              "goldie_red",
+              "goldie_brown",
+              "lolo"
+            ]
+          },
+          "maxItems": 2,
+          "description": "Who joins your buddy on the stage / at the party (empty = random friends)."
+        },
+        "thaidevpet.thaiLevel": {
           "type": "string",
           "default": "beginner",
           "enum": [
@@ -247,29 +400,34 @@
           ],
           "description": "Which Thai vocabulary level the buddy teaches."
         },
-        "kiropet.wordIntervalMinutes": {
+        "thaidevpet.wordIntervalMinutes": {
           "type": "number",
-          "default": 5,
+          "default": 2,
           "minimum": 1,
           "maximum": 120,
-          "description": "Show a new Thai word every N minutes while the editor is focused."
+          "description": "Show a new Thai word every N minutes while the editor is focused (click the card for the next one any time)."
         },
-        "kiropet.quizMode": {
+        "thaidevpet.showWord": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Thai word card at the top of the panel (it changes word on its own every few minutes)."
+        },
+        "thaidevpet.quizMode": {
           "type": "boolean",
           "default": false,
           "description": "Hide the English meaning until you click the speech bubble."
         },
-        "kiropet.showInStatusBar": {
+        "thaidevpet.showInStatusBar": {
           "type": "boolean",
           "default": true,
           "description": "Also show the current Thai word in the status bar."
         },
-        "kiropet.activities": {
+        "thaidevpet.activities": {
           "type": "boolean",
           "default": true,
           "description": "Let the buddy stop now and then for little activities (coffee, music, games…)."
         },
-        "kiropet.breakReminderMinutes": {
+        "thaidevpet.breakReminderMinutes": {
           "type": "number",
           "default": 60,
           "enum": [
@@ -288,19 +446,19 @@
           ],
           "description": "Remind you to take a break after this much work. 0 turns it off."
         },
-        "kiropet.breakResetMinutes": {
+        "thaidevpet.breakResetMinutes": {
           "type": "number",
           "default": 5,
           "minimum": 1,
           "maximum": 60,
           "description": "Being away from the editor this long counts as a break and resets the work timer."
         },
-        "kiropet.screenPet.script": {
+        "thaidevpet.screenPet.script": {
           "type": "string",
           "default": "",
-          "description": "Path to kiro_pet.py for the screen pet. Left empty, KiroPet looks in the open folder or asks you once."
+          "description": "Path to kiro_pet.py for the screen pet. Left empty, ThaiDevPet looks in the open folder or asks you once."
         },
-        "kiropet.screenPet.python": {
+        "thaidevpet.screenPet.python": {
           "type": "string",
           "default": "",
           "description": "Python used to run the screen pet. Empty = pythonw on PATH. Example: C:\\Users\\you\\AppData\\Local\\Programs\\Python\\Python313\\pythonw.exe"
@@ -309,4 +467,3 @@
     }
   }
 }
-
