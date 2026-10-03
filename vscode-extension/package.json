@@ -2,7 +2,7 @@
   "name": "kiropet",
   "displayName": "KiroPet",
   "description": "A cute GMMTV buddy (cartoon or pixel style) that walks around your editor and teaches you Thai words, one level at a time.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "yuningw",
   "license": "UNLICENSED",
   "engines": {
@@ -309,3 +309,4 @@
     }
   }
 }
+

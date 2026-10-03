@@ -12,7 +12,7 @@ html, body {
 #stage {
   position: relative;
   height: 100vh;
-  min-height: 126px;
+  min-height: 100px;
   overflow: hidden;
 }
 
@@ -31,25 +31,25 @@ html, body {
   transform-origin: 50% 100%;
 }
 
-/* Pixel style: 44x48 PNG frames at 1.25x. */
-#pet.pixel { width: 55px; height: 60px; transform-origin: 27.5px 30px; }
-#pet.pixel #pix { display: block; width: 55px; height: 60px; image-rendering: pixelated; }
+/* Pixel style: 44x48 PNG frames at 0.75x (~60% of the old 1.25x). */
+#pet.pixel { width: 33px; height: 36px; transform-origin: 16.5px 18px; }
+#pet.pixel #pix { display: block; width: 33px; height: 36px; image-rendering: pixelated; }
 #pet.pixel #vec { display: none; }
 
-/* Cartoon style: inline SVG, parts animated by class. */
-#pet.cartoon { width: 52px; height: 59px; transform-origin: 26px 30px; }
+/* Cartoon style: inline SVG, parts animated by class. ~60% of old 52x59. */
+#pet.cartoon { width: 31px; height: 35px; transform-origin: 15.5px 18px; }
 #pet.cartoon #pix { display: none; }
-#vec svg { display: block; width: 52px; height: 59px; overflow: visible; }
+#vec svg { display: block; width: 31px; height: 35px; overflow: visible; }
 #vec.blink #eyes-open { visibility: hidden; }
 #vec.blink #eyes-closed { visibility: visible; }
 #vec #foot-l, #vec #foot-r { transition: transform 0.12s; }
-#vec.step-l #foot-l, #vec.step-r #foot-r { transform: translateY(-5px); }
+#vec.step-l #foot-l, #vec.step-r #foot-r { transform: translateY(-3px); }
 
-/* Activity props: wide overlays in the mascot's own coordinates. */
+/* Activity props: wide overlays in the mascot's own coordinates (0.6x). */
 #prop { position: absolute; pointer-events: none; }
 #prop[hidden] { display: none; }
-#pet.pixel #prop { left: -10px; top: -7.5px; width: 100px; height: 70px; image-rendering: pixelated; }
-#pet.cartoon #prop { left: -8.67px; top: 0; width: 86.67px; height: 59px; }
+#pet.pixel #prop { left: -6px; top: -4.5px; width: 60px; height: 42px; image-rendering: pixelated; }
+#pet.cartoon #prop { left: -5.2px; top: 0; width: 52px; height: 35px; }
 
 /* Gestures */
 .g-wiggle { animation: wiggle 0.45s ease-in-out 2; }
@@ -60,9 +60,9 @@ html, body {
 .g-shake { animation: shake 0.14s linear infinite; }
 @keyframes wiggle { 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
 @keyframes dance {
-  20% { transform: translateY(-5px) rotate(-8deg); }
+  20% { transform: translateY(-3px) rotate(-8deg); }
   40% { transform: translateY(0) rotate(0); }
-  60% { transform: translateY(-5px) rotate(8deg); }
+  60% { transform: translateY(-3px) rotate(8deg); }
   80% { transform: translateY(0) rotate(0); }
 }
 @keyframes spin { 50% { transform: scaleX(-1); } }
@@ -79,7 +79,7 @@ html, body {
 /* Hover label above the buddy */
 #tip {
   position: absolute;
-  bottom: 86px;
+  bottom: 60px;
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 9px;
@@ -95,7 +95,7 @@ html, body {
 /* Little heart when you click the buddy */
 .heart {
   position: absolute;
-  bottom: 74px;
+  bottom: 52px;
   font-size: 12px;
   color: #ff6f91;
   pointer-events: none;
@@ -195,7 +195,7 @@ html, body {
 
 #zzz {
   position: absolute;
-  bottom: 78px;
+  bottom: 54px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 2px;
@@ -208,3 +208,5 @@ html, body {
 @keyframes float {
   50% { transform: translateY(-4px); }
 }
+
+
