@@ -36,9 +36,10 @@ from the ThaiDevPet folder once.
   worked and nudges you every 30/45/60/90 min (or pick **No break
   reminders** to show just the worked time). Being away from the editor
   for 5+ min counts as a break and resets the clock.
-- The buddy stops now and then for an activity (coffee, music, reading,
+- About every 2 minutes (`thaidevpet.activityEveryMinutes`) the buddy stops for an activity (coffee, music, reading,
   games, noodles, TV…) and does little gestures (wiggle, dance, spin,
-  stretch, nod). Hover over it to see what it's up to, or right-click → **Do an activity…**
+  stretch, nod). An emoji above its head shows what it's doing (hover for the name), or
+  right-click → **Do an activity…**
   to pick one.
 - The buddy naps when the editor loses focus, and wakes when you come back.
 
@@ -61,6 +62,10 @@ scene, **shuffle** a category, shuffle everything, or no background:
   office, bubble tea at the market, a nap in the bedroom…).
 - **Full colour** or **Soft** (faded into your theme); cartoon and pixel art.
 - Each scene brings ~20–30 Thai words, by level, mixed into the word card.
+- Each scene has its own activities on top of the everyday ones - an
+  umbrella on a rainy day, a ngob hat at the floating market, a tuk-tuk
+  ride, sky lanterns at Loy Krathong, a mic at the fanmeet... When an
+  activity starts, the word card shows its Thai word (e.g. ☂️ กางร่ม).
 
 ## Settings
 
@@ -79,6 +84,7 @@ scene, **shuffle** a category, shuffle everything, or no background:
 | `thaidevpet.thaiLevel` | `beginner` | `beginner`, `elementary`, `intermediate`, `advanced` or `all` |
 | `thaidevpet.wordIntervalMinutes` | `2` | New word every N focused minutes |
 | `thaidevpet.activities` | `true` | Little activities with props |
+| `thaidevpet.activityEveryMinutes` | `2` | How often a new activity starts |
 | `thaidevpet.breakReminderMinutes` | `60` | 0 (off), 30, 45, 60 or 90 |
 | `thaidevpet.breakResetMinutes` | `5` | Time away that counts as a break |
 | `thaidevpet.showWord` | `true` | Show the Thai word card |
@@ -90,8 +96,8 @@ scene, **shuffle** a category, shuffle everything, or no background:
 ```sh
 cd vscode-extension
 npx @vscode/vsce package --skip-license --allow-missing-repository
-code --install-extension thaidevpet-0.6.3.vsix     # VS Code
-kiro --install-extension thaidevpet-0.6.3.vsix     # Kiro
+code --install-extension thaidevpet-0.7.0.vsix     # VS Code
+kiro --install-extension thaidevpet-0.7.0.vsix     # Kiro
 ```
 
 Pixel sprites and words come from the Python app (`sprites.py`,

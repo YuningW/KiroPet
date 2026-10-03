@@ -373,22 +373,24 @@ def steam(xs, y, color="#c9c4dd"):
 
 
 def _drumstick():
-    return ('<g transform="translate(104 84) rotate(-25)">'
-            '<rect x="8" y="-3" width="22" height="6" rx="3" fill="#f6ead0" stroke="#d8c7a0" stroke-width="1.4"/>'
-            '<circle cx="31" cy="-4" r="4" fill="#f6ead0" stroke="#d8c7a0" stroke-width="1.4"/>'
-            '<circle cx="31" cy="4" r="4" fill="#f6ead0" stroke="#d8c7a0" stroke-width="1.4"/>'
-            '<ellipse cx="0" cy="0" rx="14" ry="11" fill="#d4843f" stroke="#a85e26" stroke-width="2"/>'
-            '<ellipse cx="-4" cy="-4" rx="6" ry="3" fill="#f0a865"/></g>')
+    # held in the right paw, meaty end raised to the mouth
+    return ('<path d="M83 87L95 99" stroke="#f6ead0" stroke-width="7" stroke-linecap="round"/>'
+            '<path d="M83 87L95 99" stroke="#d8c7a0" stroke-width="1.2" stroke-linecap="round" opacity=".6"/>'
+            '<circle cx="97" cy="99" r="4.2" fill="#f6ead0" stroke="#d8c7a0" stroke-width="1.4"/>'
+            '<circle cx="95" cy="103" r="4.2" fill="#f6ead0" stroke="#d8c7a0" stroke-width="1.4"/>'
+            '<ellipse cx="75" cy="80" rx="14" ry="10.5" fill="#d4843f" stroke="#a85e26" stroke-width="2" '
+            'transform="rotate(-35 75 80)"/>'
+            '<ellipse cx="71" cy="76" rx="6" ry="3" fill="#f0a865" transform="rotate(-35 71 76)"/>')
 
 
 PROPS = {
     "chicken": _drumstick,
     "music": lambda: (
-        '<path d="M14 56Q14 4 60 4Q106 4 106 56" fill="none" stroke="#3a3550" '
+        '<path d="M9 62Q9 12 60 12Q111 12 111 62" fill="none" stroke="#3a3550" '
         'stroke-width="6" stroke-linecap="round"/>'
-        '<rect x="3" y="44" width="17" height="27" rx="8" fill="#ff8fb0" stroke="#3a3550" stroke-width="2.4"/>'
-        '<rect x="100" y="44" width="17" height="27" rx="8" fill="#ff8fb0" stroke="#3a3550" stroke-width="2.4"/>'
-        + note(140, 42, "#5b8def") + note(162, 20, "#f06c9a")),
+        '<rect x="0" y="50" width="17" height="27" rx="8" fill="#ff8fb0" stroke="#3a3550" stroke-width="2.4"/>'
+        '<rect x="103" y="50" width="17" height="27" rx="8" fill="#ff8fb0" stroke="#3a3550" stroke-width="2.4"/>'
+        + note(138, 40, "#5b8def") + note(160, 18, "#f06c9a")),
     "sleep": lambda: zee(126, 44, 1.1) + zee(142, 26, 1.4) + zee(160, 6, 1.8),
     "read": lambda: (
         '<g transform="translate(60 101)" stroke-linejoin="round">'
@@ -407,19 +409,19 @@ PROPS = {
         '<rect x="133" y="53" width="40" height="30" rx="4" fill="#8fd0e0"/>'
         '<path d="M137 58l8 0M137 62l5 0" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/>'
         '<path d="M138 88l-3 8M168 88l3 8" stroke="#4a4f5a" stroke-width="3" stroke-linecap="round"/>'),
-    "bubbletea": lambda: (
-        '<rect x="141" y="50" width="4" height="30" rx="2" fill="#ff6f91" transform="rotate(8 143 65)"/>'
-        '<path d="M127 78H153L149 115H131Z" fill="#f6ead6" stroke="#d8c3a0" stroke-width="1.6"/>'
-        '<path d="M128.5 88H151.5L149 115H131Z" fill="#d1a873"/>'
-        + "".join(f'<circle cx="{x}" cy="{y}" r="2.6" fill="#3a2a20"/>'
-                  for x, y in ((135, 110), (140, 108), (145, 110), (137, 104), (143, 103)))
-        + '<ellipse cx="140" cy="78" rx="14" ry="4" fill="#fff" stroke="#d8c3a0" stroke-width="1.4"/>'),
-    "coffee": lambda: (
-        steam((134, 144), 82)
-        + '<path d="M152 95q11 0 11 8q0 8-11 8" fill="none" stroke="#d8d2c6" stroke-width="4"/>'
-        '<rect x="126" y="88" width="27" height="27" rx="6" fill="#fff" stroke="#d8d2c6" stroke-width="2"/>'
-        '<ellipse cx="139.5" cy="90.5" rx="11" ry="2.6" fill="#6b4226"/>'
-        + heart(139.5, 103, 1, "#ff9ec4")),
+    "bubbletea": lambda: (                    # held in the right paw, sipping
+        '<path d="M91 63L68 79" stroke="#ff6f91" stroke-width="3.6" stroke-linecap="round"/>'
+        '<path d="M79 64H103L99 100H83Z" fill="#f6ead6" stroke="#d8c3a0" stroke-width="1.6"/>'
+        '<path d="M80.3 74H101.7L99 100H83Z" fill="#d1a873"/>'
+        + "".join(f'<circle cx="{x}" cy="{y}" r="2.4" fill="#3a2a20"/>'
+                  for x, y in ((86, 95), (91, 93), (96, 95), (88, 89), (94, 88)))
+        + '<ellipse cx="91" cy="64" rx="13" ry="3.6" fill="#fff" stroke="#d8c3a0" stroke-width="1.4"/>'),
+    "coffee": lambda: (                       # mug raised in the right paw
+        steam((86, 95), 64)
+        + '<path d="M102 76q9 0 9 7q0 7-9 7" fill="none" stroke="#d8d2c6" stroke-width="4"/>'
+        '<rect x="77" y="70" width="26" height="26" rx="6" fill="#fff" stroke="#d8d2c6" stroke-width="2"/>'
+        '<ellipse cx="90" cy="72.5" rx="10.5" ry="2.6" fill="#6b4226"/>'
+        + heart(90, 84, 1, "#ff9ec4")),
     "game": lambda: (
         '<path d="M30 96Q30 88 40 88H80Q90 88 90 96L94 108Q96 116 86 114L78 108H42L34 114Q24 116 26 108Z" '
         'fill="#5a5f6e" stroke="#3f4350" stroke-width="1.6"/>'
@@ -428,13 +430,13 @@ PROPS = {
         '<circle cx="70" cy="99" r="2.6" fill="#ffd23f"/><circle cx="76" cy="104" r="2.6" fill="#5b8def"/>'
         + sparkle(136, 44, 1.4, "#ffd23f") + sparkle(158, 62, 1.1, "#ffd23f")
         + sparkle(152, 22, .9, "#ff9ec4")),
-    "noodles": lambda: (
-        steam((136, 148), 80)
-        + '<path d="M150 92L174 58M157 93L178 64" stroke="#8a5a33" stroke-width="3" stroke-linecap="round"/>'
-        '<path d="M120 94H168Q166 117 144 117Q122 117 120 94Z" fill="#e05a4e" stroke="#b8443a" stroke-width="1.8"/>'
-        '<ellipse cx="144" cy="94" rx="24" ry="5" fill="#ffe08a" stroke="#e8c45a" stroke-width="1.4"/>'
-        '<path d="M134 93q3-6 6 0q3-6 6 0q3-6 6 0" fill="none" stroke="#f2cf62" stroke-width="2"/>'
-        '<path d="M126 104h36" stroke="#fff" stroke-width="2" stroke-dasharray="4 4" opacity=".7"/>'),
+    "noodles": lambda: (                      # bowl in both paws, chopsticks to the mouth
+        steam((44, 54), 88)
+        + '<path d="M28 92H92Q90 114 60 114Q30 114 28 92Z" fill="#e05a4e" stroke="#b8443a" stroke-width="1.8"/>'
+        '<ellipse cx="60" cy="92" rx="32" ry="5.5" fill="#ffe08a" stroke="#e8c45a" stroke-width="1.4"/>'
+        '<path d="M36 104h48" stroke="#fff" stroke-width="2" stroke-dasharray="4 4" opacity=".7"/>'
+        '<path d="M88 94L65 77M92 95L70 76" stroke="#8a5a33" stroke-width="2.8" stroke-linecap="round"/>'
+        '<path d="M67 79q-2 5 1 9M70 78q2 6-1 10" fill="none" stroke="#f2cf62" stroke-width="2" stroke-linecap="round"/>'),
     "phone": lambda: (
         '<rect x="47" y="82" width="26" height="32" rx="5" fill="#2f3240"/>'
         '<rect x="50" y="86" width="20" height="24" rx="2.5" fill="#9fe0ff"/>'

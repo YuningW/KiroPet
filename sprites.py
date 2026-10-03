@@ -440,15 +440,16 @@ def _draw_z(g, x, y, col):
 
 
 def _prop(g, action):
-    if action == "chicken":
+    if action == "chicken":                     # drumstick in the right paw, to the mouth
         meat, bone = "#c8763a", "#f2e4c2"
-        disc(g, 25, 15, 2, meat)                # near the muzzle
-        rect(g, 26, 15, 30, 16, bone)
-        disc(g, 31, 15, 1, bone)
-    elif action == "music":
-        hp, note = "#3a3550", "#5b8def"
-        rect(g, 9, 5, 21, 5, hp)                # headband over head
-        rect(g, 8, 6, 9, 10, hp); rect(g, 21, 6, 22, 10, hp)   # earcups
+        px(g, 20, 19, bone); px(g, 21, 20, bone); px(g, 22, 21, bone)
+        disc(g, 23, 22, 1, bone)
+        disc(g, 19, 17, 2, meat)
+    elif action == "music":                     # headphones hugging the head
+        hp, cup, note = "#3a3550", "#ff8fb0", "#5b8def"
+        rect(g, 7, 5, 23, 5, hp); px(g, 6, 6, hp); px(g, 24, 6, hp)
+        rect(g, 5, 7, 5, 9, hp); rect(g, 25, 7, 25, 9, hp)
+        rect(g, 4, 10, 6, 15, cup); rect(g, 24, 10, 26, 15, cup)
         for nx, ny in ((32, 9), (37, 6)):       # floating notes
             rect(g, nx, ny, nx, ny + 4, note)
             rect(g, nx, ny, nx + 2, ny, note)
@@ -473,19 +474,19 @@ def _prop(g, action):
         rect(g, 29, 12, 37, 19, scr)
         px(g, 30, 21, tv); px(g, 36, 21, tv)    # legs
         px(g, 31, 14, HI); px(g, 32, 15, HI)
-    elif action == "bubbletea":
+    elif action == "bubbletea":                 # cup in the right paw, straw to the mouth
         cup, tea, pearl, straw = "#f3e3c9", "#caa06a", "#3a2a20", "#ff6f91"
-        rect(g, 30, 16, 35, 25, cup)
-        rect(g, 30, 16, 35, 17, tea)
-        px(g, 31, 23, pearl); px(g, 33, 24, pearl)
-        px(g, 32, 22, pearl); px(g, 34, 23, pearl)
-        rect(g, 33, 12, 34, 17, straw)
-    elif action == "coffee":
+        rect(g, 19, 14, 23, 21, cup)
+        rect(g, 19, 17, 23, 21, tea)
+        px(g, 20, 20, pearl); px(g, 22, 20, pearl); px(g, 21, 19, pearl)
+        px(g, 19, 15, straw); px(g, 18, 16, straw); px(g, 17, 17, straw)
+    elif action == "coffee":                    # mug raised in the right paw
         mug, cof, steam = "#e8e2d6", "#5b3a24", "#c9c4dd"
-        rect(g, 30, 18, 36, 24, mug)
-        rect(g, 31, 18, 35, 19, cof)
-        px(g, 37, 20, mug); px(g, 37, 21, mug); px(g, 38, 20, mug)   # handle
-        px(g, 32, 14, steam); px(g, 33, 13, steam); px(g, 34, 14, steam)
+        rect(g, 18, 15, 23, 20, mug)
+        rect(g, 19, 15, 22, 15, cof)
+        px(g, 24, 17, mug); px(g, 24, 18, mug)  # handle
+        px(g, 20, 18, "#ff9ec4")
+        px(g, 19, 12, steam); px(g, 20, 11, steam); px(g, 21, 12, steam)
     elif action == "game":
         pad, dp = "#5a5f6e", "#33303f"
         rect(g, 9, 21, 21, 25, pad)             # gamepad held in front
@@ -495,14 +496,16 @@ def _prop(g, action):
         px(g, 17, 23, "#ffd23f"); px(g, 20, 21, "#5b8def")
         for sx, sy in ((30, 8), (34, 5), (37, 10)):                  # sparks
             px(g, sx, sy, "#ffd23f")
-    elif action == "noodles":
+    elif action == "noodles":                   # bowl in both paws, chopsticks to the mouth
         bowl, rim, ndl, stick = "#e05a4e", "#b8443a", "#ffe08a", "#8a5a33"
-        rect(g, 28, 20, 37, 25, bowl)
-        rect(g, 28, 20, 37, 20, rim)
-        for nx in (29, 31, 33, 35):             # noodles lifted over the rim
-            px(g, nx, 19, ndl); px(g, nx + 1, 18, ndl)
-        rect(g, 34, 12, 35, 18, stick)          # chopsticks
-        px(g, 30, 15, "#c9c4dd"); px(g, 32, 13, "#c9c4dd")           # steam
+        rect(g, 8, 20, 22, 23, bowl)
+        rect(g, 8, 20, 22, 20, rim)
+        for nx in (9, 12, 15, 18):              # noodles over the rim
+            px(g, nx, 19, ndl)
+        for k in range(4):                      # chopsticks from the right paw
+            px(g, 21 - k, 19 - k, stick)
+        px(g, 17, 17, ndl); px(g, 17, 18, ndl)
+        px(g, 11, 16, "#c9c4dd"); px(g, 13, 15, "#c9c4dd")       # steam
     elif action == "phone":
         body, scr = "#2f3240", "#9fe0ff"
         rect(g, 12, 20, 18, 25, body)           # phone held in front

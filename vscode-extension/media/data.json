@@ -49,51 +49,773 @@
  "actions": [
   {
    "id": "chicken",
-   "label": "eating fried chicken"
+   "label": "eating fried chicken",
+   "emoji": "🍗",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": null,
+   "word": [
+    "กินไก่ทอด",
+    "gin gài thâwt",
+    "Eating fried chicken"
+   ]
   },
   {
    "id": "music",
-   "label": "listening to music"
+   "label": "listening to music",
+   "emoji": "🎧",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": null,
+   "word": [
+    "ฟังเพลง",
+    "fang phleeng",
+    "Listening to music"
+   ]
   },
   {
    "id": "sleep",
-   "label": "having a nap"
+   "label": "having a nap",
+   "emoji": "💤",
+   "side": true,
+   "motion": null,
+   "closed": true,
+   "scene": null,
+   "word": [
+    "นอนหลับ",
+    "nawn-làp",
+    "Sleeping"
+   ]
   },
   {
    "id": "read",
-   "label": "reading a book"
+   "label": "reading a book",
+   "emoji": "📖",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": null,
+   "word": [
+    "อ่านหนังสือ",
+    "àan nǎng-sǔe",
+    "Reading a book"
+   ]
   },
   {
    "id": "work",
-   "label": "working hard"
+   "label": "working hard",
+   "emoji": "💻",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": null,
+   "word": [
+    "ทำงาน",
+    "tham-ngaan",
+    "Working"
+   ]
   },
   {
    "id": "tv",
-   "label": "watching TV"
+   "label": "watching TV",
+   "emoji": "📺",
+   "side": true,
+   "motion": null,
+   "closed": false,
+   "scene": null,
+   "word": [
+    "ดูทีวี",
+    "duu thii-wii",
+    "Watching TV"
+   ]
   },
   {
    "id": "bubbletea",
-   "label": "bubble tea break"
+   "label": "bubble tea break",
+   "emoji": "🧋",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": null,
+   "word": [
+    "ชานมไข่มุก",
+    "chaa-nom khài-múk",
+    "Bubble tea"
+   ]
   },
   {
    "id": "coffee",
-   "label": "coffee time"
+   "label": "coffee time",
+   "emoji": "☕",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": null,
+   "word": [
+    "ดื่มกาแฟ",
+    "dùem gaa-fae",
+    "Drinking coffee"
+   ]
   },
   {
    "id": "game",
-   "label": "playing games"
+   "label": "playing games",
+   "emoji": "🎮",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": null,
+   "word": [
+    "เล่นเกม",
+    "lên geem",
+    "Playing games"
+   ]
   },
   {
    "id": "noodles",
-   "label": "slurping noodles"
+   "label": "slurping noodles",
+   "emoji": "🍜",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": null,
+   "word": [
+    "กินก๋วยเตี๋ยว",
+    "gin gǔai-dtǐao",
+    "Eating noodle soup"
+   ]
   },
   {
    "id": "phone",
-   "label": "scrolling the phone"
+   "label": "scrolling the phone",
+   "emoji": "📱",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": null,
+   "word": [
+    "เล่นโทรศัพท์",
+    "lên thoo-rá-sàp",
+    "Using the phone"
+   ]
   },
   {
    "id": "plant",
-   "label": "watering the plant"
+   "label": "watering the plant",
+   "emoji": "🪴",
+   "side": true,
+   "motion": null,
+   "closed": false,
+   "scene": null,
+   "word": [
+    "รดน้ำต้นไม้",
+    "rót náam dtôn-máai",
+    "Watering the plant"
+   ]
+  },
+  {
+   "id": "lunchbox",
+   "label": "eating a lunch box",
+   "emoji": "🍱",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "office",
+   "word": [
+    "กินข้าวกล่อง",
+    "gin khâao-glàwng",
+    "Eating a lunch box"
+   ]
+  },
+  {
+   "id": "sticky",
+   "label": "writing sticky notes",
+   "emoji": "✍️",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "office",
+   "word": [
+    "เขียนโน้ต",
+    "khǐan nóot",
+    "Writing a note"
+   ]
+  },
+  {
+   "id": "meeting",
+   "label": "in an online meeting",
+   "emoji": "🎧",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "office",
+   "word": [
+    "ประชุมออนไลน์",
+    "bprà-chum awn-lai",
+    "Online meeting"
+   ]
+  },
+  {
+   "id": "cake",
+   "label": "eating cake",
+   "emoji": "🍰",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "cafe",
+   "word": [
+    "กินเค้ก",
+    "gin khéek",
+    "Eating cake"
+   ]
+  },
+  {
+   "id": "croissant",
+   "label": "eating a croissant",
+   "emoji": "🥐",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "cafe",
+   "word": [
+    "กินครัวซองต์",
+    "gin khrua-sawng",
+    "Eating a croissant"
+   ]
+  },
+  {
+   "id": "foodphoto",
+   "label": "taking a photo of the food",
+   "emoji": "📸",
+   "side": false,
+   "motion": "sparkle",
+   "closed": false,
+   "scene": "cafe",
+   "word": [
+    "ถ่ายรูปอาหาร",
+    "thàai-rûup aa-hǎan",
+    "Taking a photo of the food"
+   ]
+  },
+  {
+   "id": "plushie",
+   "label": "hugging a plushie",
+   "emoji": "🧸",
+   "side": false,
+   "motion": "hearts",
+   "closed": false,
+   "scene": "bedroom",
+   "word": [
+    "กอดตุ๊กตา",
+    "gàwt dtúk-gà-dtaa",
+    "Hugging a plushie"
+   ]
+  },
+  {
+   "id": "facemask",
+   "label": "relaxing in a face mask",
+   "emoji": "🧖",
+   "side": false,
+   "motion": null,
+   "closed": true,
+   "scene": "bedroom",
+   "word": [
+    "มาส์กหน้า",
+    "mâak nâa",
+    "Face mask"
+   ]
+  },
+  {
+   "id": "blanket",
+   "label": "snuggling under a blanket",
+   "emoji": "🛌",
+   "side": false,
+   "motion": null,
+   "closed": true,
+   "scene": "bedroom",
+   "word": [
+    "ห่มผ้า",
+    "hòm phâa",
+    "Snuggling under a blanket"
+   ]
+  },
+  {
+   "id": "umbrella",
+   "label": "under an umbrella",
+   "emoji": "☂️",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "rainy",
+   "word": [
+    "กางร่ม",
+    "gaang rôm",
+    "Opening an umbrella"
+   ]
+  },
+  {
+   "id": "puddle",
+   "label": "jumping in puddles",
+   "emoji": "💦",
+   "side": false,
+   "motion": "hop",
+   "closed": false,
+   "scene": "rainy",
+   "word": [
+    "กระโดดแอ่งน้ำ",
+    "grà-dòot àeng-náam",
+    "Jumping in puddles"
+   ]
+  },
+  {
+   "id": "raincoat",
+   "label": "in a yellow raincoat",
+   "emoji": "🧥",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "rainy",
+   "word": [
+    "ใส่เสื้อกันฝน",
+    "sài sûea gan-fǒn",
+    "Wearing a raincoat"
+   ]
+  },
+  {
+   "id": "wai",
+   "label": "making a wai",
+   "emoji": "🙏",
+   "side": false,
+   "motion": "wave",
+   "closed": true,
+   "scene": "wat_arun",
+   "word": [
+    "ไหว้",
+    "wâi",
+    "Wai (a respectful greeting)"
+   ]
+  },
+  {
+   "id": "selfie",
+   "label": "taking a selfie",
+   "emoji": "🤳",
+   "side": false,
+   "motion": "sparkle",
+   "closed": false,
+   "scene": "wat_arun",
+   "word": [
+    "ถ่ายเซลฟี่",
+    "thàai sen-fîi",
+    "Taking a selfie"
+   ]
+  },
+  {
+   "id": "lotus",
+   "label": "holding a lotus",
+   "emoji": "🪷",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "wat_arun",
+   "word": [
+    "ดอกบัว",
+    "dàwk-bua",
+    "Lotus flower"
+   ]
+  },
+  {
+   "id": "ngob",
+   "label": "wearing a ngob hat",
+   "emoji": "👒",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "market",
+   "word": [
+    "ใส่หมวกงอบ",
+    "sài mùak ngâwp",
+    "Wearing a ngob hat"
+   ]
+  },
+  {
+   "id": "stickyrice",
+   "label": "eating mango sticky rice",
+   "emoji": "🥭",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "market",
+   "word": [
+    "กินข้าวเหนียวมะม่วง",
+    "gin khâao-nǐao má-mûang",
+    "Eating mango sticky rice"
+   ]
+  },
+  {
+   "id": "coconut",
+   "label": "drinking a coconut",
+   "emoji": "🥥",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "market",
+   "word": [
+    "ดื่มน้ำมะพร้าว",
+    "dùem náam má-phráao",
+    "Drinking coconut water"
+   ]
+  },
+  {
+   "id": "sandcastle",
+   "label": "building a sandcastle",
+   "emoji": "🏰",
+   "side": true,
+   "motion": null,
+   "closed": false,
+   "scene": "beach",
+   "word": [
+    "ก่อปราสาททราย",
+    "gàw bpraa-sàat saai",
+    "Building a sandcastle"
+   ]
+  },
+  {
+   "id": "sunglasses",
+   "label": "sunbathing in sunglasses",
+   "emoji": "😎",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "beach",
+   "word": [
+    "ใส่แว่นกันแดด",
+    "sài wâen gan-dàet",
+    "Wearing sunglasses"
+   ]
+  },
+  {
+   "id": "swimring",
+   "label": "wearing a swim ring",
+   "emoji": "🛟",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "beach",
+   "word": [
+    "ห่วงยาง",
+    "hùang-yaang",
+    "Swim ring"
+   ]
+  },
+  {
+   "id": "dimsum",
+   "label": "eating dim sum",
+   "emoji": "🥟",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "yaowarat",
+   "word": [
+    "กินติ่มซำ",
+    "gin dtìm-sam",
+    "Eating dim sum"
+   ]
+  },
+  {
+   "id": "lantern",
+   "label": "carrying a red lantern",
+   "emoji": "🏮",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "yaowarat",
+   "word": [
+    "ถือโคมแดง",
+    "thǔe khoom daeng",
+    "Carrying a red lantern"
+   ]
+  },
+  {
+   "id": "angpao",
+   "label": "getting a red envelope",
+   "emoji": "🧧",
+   "side": false,
+   "motion": "sparkle",
+   "closed": false,
+   "scene": "yaowarat",
+   "word": [
+    "ได้อั่งเปา",
+    "dâai àng-bpao",
+    "Getting a red envelope"
+   ]
+  },
+  {
+   "id": "ride",
+   "label": "riding a tuk-tuk",
+   "emoji": "🛺",
+   "side": false,
+   "motion": "ride",
+   "closed": false,
+   "scene": "tuktuk",
+   "word": [
+    "นั่งตุ๊กตุ๊ก",
+    "nâng dtúk-dtúk",
+    "Riding a tuk-tuk"
+   ]
+  },
+  {
+   "id": "teabag",
+   "label": "drinking Thai tea from a bag",
+   "emoji": "🧋",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "tuktuk",
+   "word": [
+    "ชาเย็นใส่ถุง",
+    "chaa-yen sài thǔng",
+    "Thai iced tea in a bag"
+   ]
+  },
+  {
+   "id": "moopink",
+   "label": "eating moo ping skewers",
+   "emoji": "🍢",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "tuktuk",
+   "word": [
+    "หมูปิ้ง",
+    "mǔu bpîng",
+    "Grilled pork skewers"
+   ]
+  },
+  {
+   "id": "watergun",
+   "label": "squirting a water gun",
+   "emoji": "🔫",
+   "side": false,
+   "motion": "sparkle",
+   "closed": false,
+   "scene": "songkran",
+   "word": [
+    "เล่นปืนฉีดน้ำ",
+    "lên bpuen chìit-náam",
+    "Playing with a water gun"
+   ]
+  },
+  {
+   "id": "bucket",
+   "label": "splashing a bucket of water",
+   "emoji": "🪣",
+   "side": false,
+   "motion": "sparkle",
+   "closed": false,
+   "scene": "songkran",
+   "word": [
+    "ถังน้ำ",
+    "thǎng náam",
+    "Water bucket"
+   ]
+  },
+  {
+   "id": "flowershirt",
+   "label": "in a flower shirt",
+   "emoji": "🌺",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "songkran",
+   "word": [
+    "ใส่เสื้อลายดอก",
+    "sài sûea laai dàwk",
+    "Wearing a flower-print shirt"
+   ]
+  },
+  {
+   "id": "krathong",
+   "label": "floating a krathong",
+   "emoji": "🪷",
+   "side": false,
+   "motion": "float",
+   "closed": false,
+   "scene": "loykrathong",
+   "word": [
+    "ลอยกระทง",
+    "loi grà-thong",
+    "Floating a krathong"
+   ]
+  },
+  {
+   "id": "skylantern",
+   "label": "releasing a sky lantern",
+   "emoji": "🏮",
+   "side": false,
+   "motion": "rise",
+   "closed": false,
+   "scene": "loykrathong",
+   "word": [
+    "ปล่อยโคมลอย",
+    "bplòi khoom-loi",
+    "Releasing a sky lantern"
+   ]
+  },
+  {
+   "id": "sparkler",
+   "label": "waving a sparkler",
+   "emoji": "✨",
+   "side": false,
+   "motion": "sparkle",
+   "closed": false,
+   "scene": "loykrathong",
+   "word": [
+    "จุดพลุ",
+    "jùt phlú",
+    "Lighting sparklers"
+   ]
+  },
+  {
+   "id": "wish",
+   "label": "making a wish",
+   "emoji": "🤞",
+   "side": false,
+   "motion": null,
+   "closed": true,
+   "scene": "loykrathong",
+   "word": [
+    "อธิษฐาน",
+    "à-thít-thǎan",
+    "Making a wish"
+   ]
+  },
+  {
+   "id": "sing",
+   "label": "singing on stage",
+   "emoji": "🎤",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "stage",
+   "word": [
+    "ร้องเพลง",
+    "ráwng-phleeng",
+    "Singing"
+   ]
+  },
+  {
+   "id": "lightstick",
+   "label": "waving a lightstick",
+   "emoji": "🪄",
+   "side": false,
+   "motion": "wave",
+   "closed": false,
+   "scene": "stage",
+   "word": [
+    "โบกแท่งไฟ",
+    "bòok thâeng-fai",
+    "Waving a lightstick"
+   ]
+  },
+  {
+   "id": "hearthands",
+   "label": "making heart hands",
+   "emoji": "🫶",
+   "side": false,
+   "motion": "hearts",
+   "closed": false,
+   "scene": "stage",
+   "word": [
+    "ทำมือรูปหัวใจ",
+    "tham mue rûup hǔa-jai",
+    "Making heart hands"
+   ]
+  },
+  {
+   "id": "flowers",
+   "label": "receiving flowers",
+   "emoji": "💐",
+   "side": false,
+   "motion": "hearts",
+   "closed": false,
+   "scene": "stage",
+   "word": [
+    "ได้ดอกไม้",
+    "dâai dàwk-máai",
+    "Receiving flowers"
+   ]
+  },
+  {
+   "id": "partyhat",
+   "label": "wearing a party hat",
+   "emoji": "🥳",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "party",
+   "word": [
+    "ใส่หมวกปาร์ตี้",
+    "sài mùak bpaa-dtîi",
+    "Wearing a party hat"
+   ]
+  },
+  {
+   "id": "confetti",
+   "label": "popping confetti",
+   "emoji": "🎉",
+   "side": false,
+   "motion": "confetti",
+   "closed": false,
+   "scene": "party",
+   "word": [
+    "โปรยกระดาษ",
+    "bproi grà-dàat",
+    "Throwing confetti"
+   ]
+  },
+  {
+   "id": "cocktail",
+   "label": "sipping a cocktail",
+   "emoji": "🍸",
+   "side": false,
+   "motion": null,
+   "closed": false,
+   "scene": "bar",
+   "word": [
+    "จิบค็อกเทล",
+    "jìp khák-theen",
+    "Sipping a cocktail"
+   ]
+  },
+  {
+   "id": "cheers",
+   "label": "clinking glasses",
+   "emoji": "🥂",
+   "side": false,
+   "motion": "sparkle",
+   "closed": false,
+   "scene": "bar",
+   "word": [
+    "ชนแก้ว",
+    "chon gâew",
+    "Cheers! (clinking glasses)"
+   ]
+  },
+  {
+   "id": "citycam",
+   "label": "photographing the view",
+   "emoji": "📸",
+   "side": false,
+   "motion": "sparkle",
+   "closed": false,
+   "scene": "bar",
+   "word": [
+    "ถ่ายรูปวิว",
+    "thàai-rûup wiw",
+    "Photographing the view"
+   ]
   }
  ],
  "categories": [

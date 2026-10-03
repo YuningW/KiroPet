@@ -21,6 +21,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 
+import activities as A  # noqa: E402
 import cartoon as C  # noqa: E402
 import scenes as SC  # noqa: E402
 import sprites as S  # noqa: E402
@@ -85,6 +86,13 @@ def main():
         grid_to_image(S.hd(scene)).save(os.path.join(props, f"{action}.png"))
         with open(os.path.join(props, f"{action}.svg"), "w", encoding="utf-8") as f:
             f.write(C.prop_svg(action))
+    # scene activities (tools/activities.py)
+    for aid, a in A.ACTIVITIES.items():
+        scene = [[None] * S.SCENE_W for _ in range(S.SCENE_H)]
+        a["pixel"](scene)
+        grid_to_image(S.hd(scene)).save(os.path.join(props, f"{aid}.png"))
+        with open(os.path.join(props, f"{aid}.svg"), "w", encoding="utf-8") as f:
+            f.write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{C.PROP_VIEWBOX}">{a["draw"]()}</svg>\n')
 
     # background scenes: cartoon SVG + pixel PNG
     scene_dir = os.path.join(MEDIA, "scenes")
@@ -108,7 +116,12 @@ def main():
         "mascots": [{"id": m, "label": S.LABELS[m],
                      "group": "GMMTV" if m in S.GMM else "Classic"}
                     for m in S.MASCOTS],
-        "actions": [{"id": a, "label": S.ACTION_LABELS[a]} for a in S.ACTIONS],
+        "actions": [{"id": a, "label": S.ACTION_LABELS[a], "emoji": A.GENERAL_EMOJI[a],
+                     "side": a in A.GENERAL_SIDE, "motion": None, "closed": a == "sleep",
+                     "scene": None, "word": list(A.GENERAL_WORDS[a])} for a in S.ACTIONS]
+                   + [{"id": aid, "label": a["label"], "emoji": a["emoji"], "side": a["kind"] == "side",
+                       "motion": a["motion"], "closed": a["closed"], "scene": a["scene"],
+                       "word": list(a["word"])} for aid, a in A.ACTIVITIES.items()],
         "categories": [{"id": c, "label": label} for c, label in SC.CATEGORIES],
         "scenes": [{"id": sid, "label": label, "category": cat, "top": top, "floor": floor,
                     "group": group, "acts": SC.SCENE_ACTIVITIES.get(sid, []),
@@ -124,6 +137,7 @@ def main():
         json.dump(data, f, ensure_ascii=False, indent=1)
     extra = sum(len(w) for w in TV.SCENE_WORDS.values())
     print(f"exported {len(S.MASCOTS)} mascots, {len(SC.SCENES)} scenes, "
+          f"{len(S.ACTIONS) + len(A.ACTIVITIES)} activities, "
           f"{len(TV.VOCAB)} + {extra} scene words -> {MEDIA}")
 
 

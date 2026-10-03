@@ -14,10 +14,15 @@
   const SLEEP_AFTER = 45 * FPS;    // nap after the editor loses focus this long
   const GESTURES = ['wiggle', 'dance', 'spin', 'stretch', 'nod'];
   const ALARM_MAX = 60 * FPS;      // stop ringing on its own after a minute
-  const SLOT_GAP = 40;             // spacing between buddies in group scenes
+  const SLOT_GAP = 50;             // spacing between buddies in group scenes
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = list => list[Math.floor(Math.random() * list.length)];
   const asset = (base, file) => `${base}/${file}?v=${window.STAMP}`;
+  // Activity details come from data.json (via the extension): emoji badge,
+  // "side" props (stand beside the buddy, drawn bigger; held ones stay 1:1),
+  // a motion, closed eyes, the scene it belongs to and its Thai word.
+  const ALARM_META = { id: 'alarm', label: "time's up!", emoji: '⏰', side: true };
+  const metaOf = id => (id === 'alarm' ? ALARM_META : st.actions.find(a => a.id === id)) || {};
 
   // ------------------------------------------------------------ one buddy
   class Actor {
@@ -68,7 +73,13 @@
     setProp(action) {
       this.action = action;
       if (!action) { this.prop.hidden = true; return; }
+      const meta = metaOf(action);
       this.prop.src = asset(window.PROPS, `${action}.${this.style === 'cartoon' ? 'svg' : 'png'}`);
+      this.prop.className = 'prop';
+      void this.prop.offsetWidth;                // restart float / rise animations
+      this.prop.classList.toggle('side', !!meta.side);
+      this.prop.classList.toggle('float', meta.motion === 'float');
+      this.prop.classList.toggle('rise', meta.motion === 'rise');
       this.prop.hidden = false;
     }
 
@@ -79,7 +90,7 @@
       this.actor.className = `actor g-${name}`;
     }
 
-    get width() { return this.el.offsetWidth || 31; }
+    get width() { return this.el.offsetWidth || 40; }
 
     // blink timer; returns true while the eyes are shut
     tickBlink() {
@@ -110,6 +121,10 @@
   }
 
   const main = new Actor($('pet'));
+  const badge = document.createElement('div');   // emoji above the head while busy
+  badge.id = 'doing';
+  badge.hidden = true;
+  stage.appendChild(badge);
   let guests = [];                 // extra buddies in group scenes
 
   const st = {
@@ -118,7 +133,8 @@
     focused: true, unfocused: 0, sleeping: false,
     revealed: true, showCard: true, word: null,
     actT: 0, alarm: 0, hovering: false,
-    clock: {}, choreo: 0, cast: [],
+    clock: {}, choreo: 0, cast: [], groupAct: null, actFrame: 0,
+    actEvery: 2, nextActAt: Date.now() + 30000,  // first activity ~30 s in
   };
 
   // ------------------------------------------------------------ background
@@ -151,6 +167,7 @@
     list.forEach((g, i) => guests[i].setArt(g.mascot, style, g.svg));
     // line-up: main buddy in the middle
     st.cast = guests.length ? [guests[0], main, ...guests.slice(1)] : [main];
+    if (changed) endGroupActivity();
     if (changed && grouped()) { stopAction(); placeCast(); }
   }
 
@@ -236,10 +253,32 @@
   }
 
   // ------------------------------------------------------------ activities
+  // Scene activities only come out in their own scene; the general ones
+  // can happen anywhere.
+  const usable = () => st.actions.filter(a => !a.scene || (st.scene && a.scene === st.scene.id));
+
+  function activityWord(id) {
+    const meta = metaOf(id);
+    if (!meta.word || id === 'alarm') return;
+    showWord({ thai: meta.word[0], rom: meta.word[1], eng: meta.word[2],
+      sceneLabel: meta.emoji, activity: true }, false);
+  }
+
+  // per-frame extras while an activity runs
+  function motionStep(a, meta, f) {
+    if (meta.motion === 'hop' && f % 32 === 0) a.hop = 14;
+    else if (meta.motion === 'sparkle' && f % 24 === 0) burst(a, '✨');
+    else if (meta.motion === 'confetti' && f % 18 === 0) burst(a, pick(['🎉', '🎊', '✨']));
+    else if (meta.motion === 'hearts' && f % 30 === 0) burst(a, '♥', 'love');
+    else if (meta.motion === 'wave' && f % 40 === 0) a.gesture(meta.closed ? 'nod' : 'wiggle');
+  }
+
   function startAction(id, seconds) {
     main.setProp(id);
     st.actT = seconds * FPS;
+    st.actFrame = 0;
     st.pause = 0;
+    activityWord(id);
     // turn away from a nearby wall so side props aren't cut off
     const room = stage.clientWidth - main.width;
     if (main.dir > 0 && main.x > room - 40) main.dir = -1;
@@ -247,15 +286,44 @@
   }
 
   function stopAction() {
+    if (main.action) {                          // next one in ~actEvery minutes
+      st.nextActAt = Date.now() + st.actEvery * 60000 * rand(0.85, 1.15);
+    }
     main.setProp(null);
     st.actT = 0;
   }
 
-  // the scene's favourite activities come up more often
+  // mostly this scene's own activities, then its favourite general ones
   function randomActivity() {
-    const ids = st.actions.map(a => a.id);
-    const fav = ((st.scene && st.scene.acts) || []).filter(a => ids.includes(a));
-    return fav.length && Math.random() < 0.65 ? pick(fav) : pick(ids);
+    const all = usable();
+    if (!all.length) return null;
+    const own = all.filter(a => a.scene);
+    const general = all.filter(a => !a.scene);
+    const fav = general.filter(a => st.scene && (st.scene.acts || []).includes(a.id));
+    const r = Math.random();
+    const list = own.length && r < 0.6 ? own : fav.length && r < 0.85 ? fav : general;
+    return pick(list.length ? list : all).id;
+  }
+
+  // Group scenes: one buddy or the whole group does a scene activity
+  // together (everyone lets go of their lanterns, clinks glasses...).
+  const TOGETHER = new Set(['cheers', 'skylantern', 'krathong', 'sparkler', 'lightstick', 'watergun', 'confetti', 'partyhat']);
+  function startGroupActivity(id) {
+    const own = usable().filter(a => a.scene);
+    id = id || (own.length ? pick(own).id : randomActivity());
+    if (!id) return;
+    const members = TOGETHER.has(id) || Math.random() < 0.35 ? st.cast.slice() : [pick(st.cast)];
+    members.forEach(a => a.setProp(id));
+    st.groupAct = { id, members, f: 0, frames: Math.round(rand(15, 25) * FPS) };
+    activityWord(id);
+  }
+
+  function endGroupActivity() {
+    if (!st.groupAct) return;
+    st.groupAct.members.forEach(a => a.setProp(null));
+    st.groupAct = null;
+    st.nextActAt = Date.now() + st.actEvery * 60000 * rand(0.85, 1.15);
+    st.choreo = FPS;
   }
 
   function heartPop(a) {
@@ -270,7 +338,8 @@
   function label() {
     if (st.alarm) return "⏰ time's up!";
     if (st.sleeping) return 'having a nap · click to wake me';
-    if (main.action) return (st.actions.find(a => a.id === main.action) || {}).label || '';
+    if (main.action) return metaOf(main.action).label || '';
+    if (st.groupAct) return metaOf(st.groupAct.id).label || '';
     if (grouped()) {
       return { dance: 'dancing with friends ♪', stage: 'on stage at the fanmeet!',
         splash: 'water fight! 💦', hangout: 'hanging out with a friend' }[st.scene.moves] || 'with friends';
@@ -291,7 +360,7 @@
     $('rom').textContent = w.rom;
     $('eng').textContent = w.eng;
     const lv = st.levelName.split(' — ')[0];
-    $('level').textContent = w.sceneLabel ? `${w.sceneLabel} · ${lv}` : lv;
+    $('level').textContent = w.activity ? w.sceneLabel : w.sceneLabel ? `${w.sceneLabel} · ${lv}` : lv;
     st.revealed = !st.quiz;
     bubble.classList.toggle('quiz', !st.revealed);
     bubble.hidden = !st.showCard;
@@ -351,6 +420,10 @@
       st.quiz = m.quiz;
       st.levelName = m.levelName;
       st.showCard = m.showWord !== false;
+      if (m.activityEvery && m.activityEvery !== st.actEvery) {
+        st.actEvery = m.activityEvery;
+        st.nextActAt = Math.min(st.nextActAt, Date.now() + st.actEvery * 60000);
+      }
       bubble.hidden = !st.showCard || !st.word;
       setFocus(m.focused);
       if (m.word) { showWord(m.word); }
@@ -366,7 +439,7 @@
     } else if (m.type === 'activity') {
       if (!st.alarm) {
         if (st.sleeping) setFocus(true);
-        startAction(m.id, 12);
+        if (grouped()) { endGroupActivity(); startGroupActivity(m.id); } else startAction(m.id, rand(20, 30));
         main.gesture('nod');
       }
     } else if (m.type === 'alarm') {
@@ -446,8 +519,18 @@
     const due = st.clock.breakAt && Date.now() >= st.clock.breakAt;
     if (st.sleeping || st.alarm) return false;
     if (main.action) {
-      if (--st.actT <= 0) stopAction();
-      else if (Math.random() < 0.003) main.gesture();
+      const meta = metaOf(main.action);
+      motionStep(main, meta, ++st.actFrame);
+      if (--st.actT <= 0) { stopAction(); return false; }
+      if (!meta.motion && Math.random() < 0.003) main.gesture();
+      if (meta.motion === 'ride') {               // tuk-tuk ride across the floor
+        main.x += main.dir * 1.8;
+        main.walk += 0.2;
+        const max = Math.max(0, width - main.width);
+        if (main.x <= 0) { main.x = 0; main.dir = 1; }
+        if (main.x >= max) { main.x = max; main.dir = -1; }
+        return true;
+      }
       return false;
     }
     if (st.pause > 0) {
@@ -456,19 +539,22 @@
       return false;
     }
     if (st.sprint > 0) st.sprint--;
-    else if (Math.random() < 0.0015) st.sprint = rand(45, 90);
-    const speed = st.sprint > 0 ? 2.2 : 0.8;
+    else if (Math.random() < 0.0015) st.sprint = Math.round(rand(45, 90));  // whole frames
+    const speed = st.sprint > 0 ? 2.6 : 1;       // px per frame (~30 px/s walking)
     main.x += main.dir * speed;
-    main.walk += st.sprint > 0 ? 0.25 : 0.12;
+    main.walk += st.sprint > 0 ? 0.28 : 0.14;
     const max = Math.max(0, width - main.width);
     if (main.x <= 0) { main.x = 0; main.dir = 1; }
     if (main.x >= max) { main.x = max; main.dir = -1; }
-    if (!st.sprint && Math.random() < 0.004) st.pause = rand(20, 90);
-    if (!st.sprint && Math.random() < 0.002) main.dir *= -1;
-    // now and then stop for an activity (coffee when a break is due)
-    if (!st.sprint && st.actions.length && Math.random() < (due ? 0.01 : 0.004)) {
+    if (st.sprint <= 0 && Math.random() < 0.003) st.pause = rand(15, 60);
+    if (st.sprint <= 0 && Math.random() < 0.002) main.dir *= -1;
+    // a new activity about every st.actEvery minutes (sooner, as coffee,
+    // when a break is due); each one lasts 20-30 s
+    const now = Date.now();
+    const ready = now >= st.nextActAt || (due && now >= st.nextActAt - st.actEvery * 45000);
+    if (st.sprint <= 0 && st.actions.length && ready) {
       const id = due && st.actions.some(a => a.id === 'coffee') ? 'coffee' : randomActivity();
-      startAction(id, rand(8, 16));
+      if (id) startAction(id, rand(20, 30));
     }
     return true;
   }
@@ -493,18 +579,38 @@
 
     if (grouped()) {
       let walking = false;
+      const ga = st.groupAct;
+      const gaMeta = ga ? metaOf(ga.id) : {};
       for (const a of st.cast) {
         const moving = !st.sleeping && walkTo(a);
         walking = walking || moving;
-        a.render(moving, a.tickBlink() || st.sleeping);
+        const busyEyes = ga && gaMeta.closed && ga.members.includes(a);
+        a.render(moving, a.tickBlink() || st.sleeping || !!busyEyes);
       }
-      if (!walking && !st.sleeping && !st.alarm && --st.choreo <= 0) choreograph();
+      if (!walking && !st.sleeping && !st.alarm) {
+        if (ga) {
+          ga.f++;
+          ga.members.forEach(a => motionStep(a, gaMeta, ga.f));
+          if (ga.f >= ga.frames) endGroupActivity();
+        } else if (Date.now() >= st.nextActAt && usable().length) {
+          startGroupActivity();
+        } else if (--st.choreo <= 0) {
+          choreograph();
+        }
+      }
     } else {
       const moving = tickSolo(width);
-      const closed = main.tickBlink() || st.sleeping || main.action === 'sleep';
+      const closed = main.tickBlink() || st.sleeping || !!(main.action && metaOf(main.action).closed);
       main.render(moving, closed);
     }
     zzz.style.left = `${Math.round(main.x + main.width - 10)}px`;
+    const busy = main.action && !st.sleeping ? metaOf(main.action).emoji || ''
+      : st.groupAct && st.groupAct.members.includes(main) ? metaOf(st.groupAct.id).emoji || '' : '';
+    badge.hidden = !busy;
+    if (busy) {
+      if (badge.textContent !== busy) badge.textContent = busy;
+      badge.style.left = `${Math.round(main.x + main.width / 2 - 7)}px`;
+    }
 
     if (st.hovering) {
       tip.textContent = label();

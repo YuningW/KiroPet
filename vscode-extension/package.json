@@ -2,7 +2,7 @@
   "name": "thaidevpet",
   "displayName": "ThaiDevPet",
   "description": "ThaiDevPet: a cute GMMTV buddy (cartoon or pixel) that hangs out in your editor, teaches Thai words by level and scene, and visits Thai landmarks, festivals and parties.",
-  "version": "0.6.3",
+  "version": "0.7.0",
   "publisher": "yuningw",
   "license": "UNLICENSED",
   "engines": {
@@ -426,6 +426,13 @@
           "type": "boolean",
           "default": true,
           "description": "Let the buddy stop now and then for little activities (coffee, music, games…)."
+        },
+        "thaidevpet.activityEveryMinutes": {
+          "type": "number",
+          "default": 2,
+          "minimum": 0.5,
+          "maximum": 30,
+          "description": "How often the buddy starts a new activity, in minutes (each lasts 20-30 seconds). Every scene has its own activities, and each one shows its Thai word."
         },
         "thaidevpet.breakReminderMinutes": {
           "type": "number",

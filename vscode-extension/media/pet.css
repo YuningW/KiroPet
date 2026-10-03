@@ -12,7 +12,7 @@ html, body {
 #stage {
   position: relative;
   height: 100vh;
-  min-height: 100px;
+  min-height: 112px;
   overflow: hidden;
 }
 
@@ -55,25 +55,45 @@ body.has-scene #info span {
   transform-origin: 50% 100%;
 }
 
-/* Pixel style: 44x48 PNG frames at 0.75x (~60% of the old 1.25x). */
-.pet.pixel { width: 33px; height: 36px; transform-origin: 16.5px 18px; }
-.pet.pixel .pix { display: block; width: 33px; height: 36px; image-rendering: pixelated; }
+/* Pixel style: 44x48 PNG frames at their natural 1x size. */
+.pet.pixel { width: 44px; height: 48px; transform-origin: 22px 24px; }
+.pet.pixel .pix { display: block; width: 44px; height: 48px; image-rendering: pixelated; }
 .pet.pixel .vec { display: none; }
 
-/* Cartoon style: inline SVG, parts animated by class. ~60% of old 52x59. */
-.pet.cartoon { width: 31px; height: 35px; transform-origin: 15.5px 18px; }
+/* Cartoon style: inline SVG, parts animated by class. */
+.pet.cartoon { width: 40px; height: 45px; transform-origin: 20px 23px; }
 .pet.cartoon .pix { display: none; }
-.vec svg { display: block; width: 31px; height: 35px; overflow: visible; }
+.vec svg { display: block; width: 40px; height: 45px; overflow: visible; }
 .vec.blink #eyes-open { visibility: hidden; }
 .vec.blink #eyes-closed { visibility: visible; }
 .vec #foot-l, .vec #foot-r { transition: transform 0.12s; }
 .vec.step-l #foot-l, .vec.step-r #foot-r { transform: translateY(-3px); }
 
-/* Activity props: wide overlays in the mascot's own coordinates (0.6x). */
+/* Activity props: wide overlays in the mascot's own coordinates. */
 .prop { position: absolute; pointer-events: none; }
 .prop[hidden] { display: none; }
-.pet.pixel .prop { left: -6px; top: -4.5px; width: 60px; height: 42px; image-rendering: pixelated; }
-.pet.cartoon .prop { left: -5.2px; top: 0; width: 52px; height: 35px; }
+.pet.pixel .prop { left: -8px; top: -6px; width: 80px; height: 56px; image-rendering: pixelated; }
+.pet.cartoon .prop { left: -6.67px; top: 0; width: 66.67px; height: 45px; }
+/* side props grow outward from the buddy's front edge (it flips with the buddy) */
+.pet.cartoon .prop.side { transform: scale(1.6); transform-origin: 46.67px 45px; }
+.pet.pixel .prop.side { transform: scale(1.6); transform-origin: 52px 54px; }
+/* moving props: a krathong drifts off downstream, a sky lantern rises away */
+.prop.float { animation: floataway 6s ease-in 2.5s forwards; }
+.prop.rise { animation: riseup 7s ease-in 2s forwards; }
+@keyframes floataway { to { transform: translate(64px, 6px); opacity: 0; } }
+@keyframes riseup { to { transform: translateY(-120px); opacity: 0; } }
+
+/* what the buddy is doing, floating above its head */
+#doing {
+  position: absolute;
+  bottom: 70px;
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
+  animation: float 1.6s ease-in-out infinite;
+  z-index: 2;
+}
+#doing[hidden] { display: none; }
 
 /* Gestures */
 .g-wiggle { animation: wiggle 0.45s ease-in-out 2; }
@@ -103,7 +123,7 @@ body.has-scene #info span {
 /* Hover label above the buddy */
 #tip {
   position: absolute;
-  bottom: 60px;
+  bottom: 72px;
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 9px;
@@ -119,7 +139,7 @@ body.has-scene #info span {
 /* Little bursts in group scenes (water splashes, hearts) */
 .burst {
   position: absolute;
-  bottom: 50px;
+  bottom: 62px;
   font-size: 11px;
   pointer-events: none;
   animation: heart 1.2s ease-out forwards;
@@ -129,7 +149,7 @@ body.has-scene #info span {
 /* Little heart when you click the buddy */
 .heart {
   position: absolute;
-  bottom: 52px;
+  bottom: 64px;
   font-size: 12px;
   color: #ff6f91;
   pointer-events: none;
@@ -235,7 +255,7 @@ body.has-scene #info span {
 
 #zzz {
   position: absolute;
-  bottom: 54px;
+  bottom: 66px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 2px;

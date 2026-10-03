@@ -193,6 +193,7 @@ class PetView {
       actions: cfg().get('activities') ? DATA.actions : [],
       quiz: cfg().get('quizMode'),
       showWord: cfg().get('showWord'),
+      activityEvery: cfg().get('activityEveryMinutes'),
       levelName: LEVEL_NAMES[this.level] || 'All levels',
       focused: vscode.window.state.focused,
       word: withWord ? this.word : undefined,
@@ -655,7 +656,10 @@ async function activate(context) {
       const gestures = ['wiggle', 'dance', 'spin', 'stretch', 'nod'];
       const pick = await vscode.window.showQuickPick([
         { label: 'Activities', kind: vscode.QuickPickItemKind.Separator },
-        ...DATA.actions.map(a => ({ label: a.label, action: a.id })),
+        // general activities, plus the current scene's own ones
+        ...DATA.actions.filter(a => !a.scene || a.scene === pet.sceneId)
+          .map(a => ({ label: `${a.emoji} ${a.label}`, action: a.id,
+            description: a.scene ? 'this scene' : '' })),
         { label: 'Gestures', kind: vscode.QuickPickItemKind.Separator },
         ...gestures.map(g => ({ label: g, gesture: g })),
       ], { placeHolder: 'What should your buddy do?' });
