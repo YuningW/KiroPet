@@ -19,3 +19,7 @@ env/
 # OS / editor cruft
 .DS_Store
 Thumbs.db
+
+# VS Code extension package
+*.vsix
+node_modules/

@@ -1,0 +1,210 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  user-select: none;
+  font-family: var(--vscode-font-family, system-ui, sans-serif);
+}
+
+/* Fill whatever height the view has, so the pet always stands on the
+   visible bottom edge instead of below a short panel. */
+#stage {
+  position: relative;
+  height: 100vh;
+  min-height: 126px;
+  overflow: hidden;
+}
+
+#pet {
+  position: absolute;
+  left: 0;
+  bottom: 22px;
+  cursor: pointer;
+}
+
+/* Inner wrapper so gestures compose with the walk/flip transform on #pet. */
+#actor {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 100%;
+}
+
+/* Pixel style: 44x48 PNG frames at 1.25x. */
+#pet.pixel { width: 55px; height: 60px; transform-origin: 27.5px 30px; }
+#pet.pixel #pix { display: block; width: 55px; height: 60px; image-rendering: pixelated; }
+#pet.pixel #vec { display: none; }
+
+/* Cartoon style: inline SVG, parts animated by class. */
+#pet.cartoon { width: 52px; height: 59px; transform-origin: 26px 30px; }
+#pet.cartoon #pix { display: none; }
+#vec svg { display: block; width: 52px; height: 59px; overflow: visible; }
+#vec.blink #eyes-open { visibility: hidden; }
+#vec.blink #eyes-closed { visibility: visible; }
+#vec #foot-l, #vec #foot-r { transition: transform 0.12s; }
+#vec.step-l #foot-l, #vec.step-r #foot-r { transform: translateY(-5px); }
+
+/* Activity props: wide overlays in the mascot's own coordinates. */
+#prop { position: absolute; pointer-events: none; }
+#prop[hidden] { display: none; }
+#pet.pixel #prop { left: -10px; top: -7.5px; width: 100px; height: 70px; image-rendering: pixelated; }
+#pet.cartoon #prop { left: -8.67px; top: 0; width: 86.67px; height: 59px; }
+
+/* Gestures */
+.g-wiggle { animation: wiggle 0.45s ease-in-out 2; }
+.g-dance { animation: dance 0.9s ease-in-out; }
+.g-spin { animation: spin 0.6s ease-in-out; }
+.g-stretch { animation: stretch 0.9s ease-in-out; }
+.g-nod { animation: nod 0.35s ease-in-out 2; }
+.g-shake { animation: shake 0.14s linear infinite; }
+@keyframes wiggle { 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
+@keyframes dance {
+  20% { transform: translateY(-5px) rotate(-8deg); }
+  40% { transform: translateY(0) rotate(0); }
+  60% { transform: translateY(-5px) rotate(8deg); }
+  80% { transform: translateY(0) rotate(0); }
+}
+@keyframes spin { 50% { transform: scaleX(-1); } }
+@keyframes stretch {
+  35% { transform: scale(0.9, 1.15); }
+  65% { transform: scale(1.1, 0.88); }
+}
+@keyframes nod { 50% { transform: rotate(7deg); } }
+@keyframes shake {
+  25% { transform: translateX(-2px) rotate(-4deg); }
+  75% { transform: translateX(2px) rotate(4deg); }
+}
+
+/* Hover label above the buddy */
+#tip {
+  position: absolute;
+  bottom: 86px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  white-space: nowrap;
+  background: var(--vscode-editorHoverWidget-background, #fffdf5);
+  color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground, #2a2540));
+  border: 1px solid var(--vscode-editorHoverWidget-border, #4a4363);
+  pointer-events: none;
+  z-index: 3;
+}
+#tip[hidden] { display: none; }
+
+/* Little heart when you click the buddy */
+.heart {
+  position: absolute;
+  bottom: 74px;
+  font-size: 12px;
+  color: #ff6f91;
+  pointer-events: none;
+  animation: heart 1.1s ease-out forwards;
+}
+@keyframes heart {
+  from { transform: translateY(0) scale(0.6); opacity: 1; }
+  to { transform: translateY(-26px) scale(1.2); opacity: 0; }
+}
+
+/* Footer: countdown + worked time */
+#info {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 3px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 9px;
+  line-height: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  color: var(--vscode-descriptionForeground, #8a86a8);
+}
+#info span:empty { display: none; }
+#info #work { margin-left: auto; }
+#info .due { color: var(--vscode-errorForeground, #e05050); font-weight: 600; }
+
+#ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 20px;
+  height: 2px;
+  background: var(--vscode-widget-border, var(--vscode-panel-border, rgba(128, 128, 128, 0.35)));
+  opacity: 0.6;
+}
+
+/* Compact word card pinned to the top of the panel. */
+#bubble {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 12px);
+  box-sizing: border-box;
+  padding: 1px 7px 2px;
+  border-radius: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.35;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-editorWidget-border, #4a4363));
+  background: var(--vscode-editorWidget-background, #fffdf5);
+  color: var(--vscode-editorWidget-foreground, var(--vscode-foreground, #2a2540));
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.25));
+  text-align: center;
+  cursor: pointer;
+  z-index: 2;
+}
+
+#bubble[hidden] { display: none; }
+
+#thai {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+#rom {
+  margin-left: 5px;
+  font-size: 9px;
+  font-style: italic;
+  color: var(--vscode-textLink-foreground, #7a5af8);
+}
+
+#eng {
+  display: inline-block;
+  font-size: 9px;
+}
+
+#level {
+  font-size: 8px;
+  opacity: 0.5;
+}
+
+#level::before { content: " · "; }
+
+/* Quiz mode: meaning hidden until the bubble is clicked. */
+#bubble.quiz #eng {
+  filter: blur(5px);
+}
+
+#bubble.quiz #level::after {
+  content: " · click to reveal";
+}
+
+#zzz {
+  position: absolute;
+  bottom: 78px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--vscode-descriptionForeground, #8a86a8);
+  animation: float 2s ease-in-out infinite;
+}
+
+#zzz[hidden] { display: none; }
+
+@keyframes float {
+  50% { transform: translateY(-4px); }
+}

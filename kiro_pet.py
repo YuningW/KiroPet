@@ -1,30 +1,40 @@
 """
-Kiro Pet - one cute pixel buddy that walks around your Kiro window.
+Kiro Pet - one cute buddy that walks around your Kiro window.
 
-A single pixel-art mascot (rendered in smooth 16/32-bit style via Scale2x +
-auto shading) patrols the border of the Kiro editor window, following it as
-you move/resize Kiro and hiding when Kiro is gone. It naps when you go idle
-and occasionally dashes. Pick which mascot you want from the chooser.
+A single mascot patrols the border of the Kiro editor window, following it as
+you move/resize Kiro and hiding when Kiro is gone. It naps when you go idle,
+occasionally dashes, and does little gestures (hop, wiggle, dance, spin).
+Pick the mascot and the art style (cartoon or pixel) from the chooser.
 
-Mascots: MuvMuv (pup in a tabby hood), Lunar (panda-duck in an eggshell),
-Any (bunny-poncho girl), Shiro (Shin-chan's dog), Goldie in a red shirt,
-Goldie in brown overalls, LOLO (strawberry kitten), Butter bear (café bear),
-Buriburizaemon (hero pig).
+Cartoon frames are pre-rendered PNGs in assets/cartoon/ (made by
+tools/render_cartoon_png.py); pixel frames are drawn live by sprites.py.
+
+GMMTV mascots: MuvMuv (pup in a tabby hood), Lunar (panda-duck), Any
+(bunny-hood girl), Jewel (fox-cat with a red bow), Vimmy (spaniel with a bee),
+Wesley (pup in a shark hood).
+Classic: Goldie (red / brown), LOLO.
 
 Usage:
     pythonw kiro_pet.py                 # opens the picker
     pythonw kiro_pet.py --mascot lunar  # skip the picker
     pythonw kiro_pet.py --target code   # follow another app instead of Kiro
     pythonw kiro_pet.py --free          # roam the whole screen
+    pythonw kiro_pet.py --style pixel   # cartoon (default) or pixel art
+    pythonw kiro_pet.py --level advanced  # Thai level for the word bubble
+
+The VS Code / Kiro extension can start and stop this for you
+(KiroPet: Choose pet…), so it no longer needs to run at login.
 
 Controls:
     Left-drag   : pick it up
-    Left-click  : poke it (it hops / new activity)
-    Right-click : menu -> change buddy / Thai word / break interval / quit
+    Left-click  : poke it (a gesture + a Thai word)
+    Right-click : menu -> buddy / art style / gesture / Thai word / level / quit
 """
 
 import argparse
 import ctypes
+import json
+import math
 from ctypes import wintypes
 import os
 import random
@@ -36,7 +46,8 @@ import sprites as S
 # The HD grid from S.hd() is 2x the authored size, so scale 3/4 keeps the
 # pet the same on-screen size with twice the pixel detail.
 NUM, DEN = 3, 4
-SIDE = max(S.W, S.H) * 2 * NUM // DEN    # square so the sprite fits when rotated
+# square so the sprite fits when rotated; 40 = the cartoon walker's height
+SIDE = max(max(S.W, S.H) * 2 * NUM // DEN, 40)
 WIN_W = WIN_H = SIDE + 6                 # a little transparent margin
 HALF = SIDE // 2                         # sprite half-extent (~18)
 INSET = HALF + 4                         # keep the pet fully inside Kiro's edge
@@ -50,6 +61,77 @@ DSCENE_H = S.SCENE_H * 2 * D_NUM // D_DEN    # 84
 DWIN_W = DSCENE_W + 8
 DWIN_H = DSCENE_H + 8
 BREAK_EVERY = 60 * 60                    # default: nudge for a break every 1 hour
+
+# ------------------------------------------------------------------ cartoon art
+ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "cartoon")
+STYLES = ("cartoon", "pixel")
+_png_cache = {}
+
+
+def cartoon_ok():
+    return os.path.isdir(os.path.join(ASSETS, "walk"))
+
+
+def png(rel, mirror=None):
+    """assets/cartoon/<rel> as a cached PhotoImage; mirror="x"/"y" flips it."""
+    key = (rel, mirror)
+    img = _png_cache.get(key)
+    if img is None:
+        if mirror:
+            base = png(rel)
+            img = base.subsample(-1, 1) if mirror == "x" else base.subsample(1, -1)
+        else:
+            img = tk.PhotoImage(file=os.path.join(ASSETS, rel))
+        _png_cache[key] = img
+    return img
+
+
+def cartoon_walk(mascot, closed, foot, rot, flip):
+    # mirror in the sprite's own frame: left-right while upright / upside
+    # down, top-bottom once it's turned sideways on a vertical edge
+    mirror = ("x" if rot % 2 == 0 else "y") if flip else None
+    return png(f"walk/{mascot}_{int(closed)}{foot}_r{rot}.png", mirror)
+
+
+# Desktop-buddy cartoon layout: the prop canvas (124x84) is 12 px wider than
+# the mascot (74x84) on the left, so the mascot's centre sits 13 px left of
+# the prop's centre (or 13 px right when mirrored).
+CARTOON_MASCOT_DX = 13
+
+# ------------------------------------------------------------------ gestures
+GESTURES = ("hop", "wiggle", "dance", "spin")
+GESTURE_LABELS = {"hop": "🐇  Hop", "wiggle": "〰️  Wiggle",
+                  "dance": "💃  Dance", "spin": "🌀  Spin"}
+GESTURE_FRAMES = {"hop": 14, "wiggle": 18, "dance": 36, "spin": 24}
+
+
+class Gesture:
+    """Short canned moves. step() returns (dx, dy, flip) for this frame:
+    dx sideways, dy up (away from the floor), flip = mirror the sprite."""
+
+    def __init__(self):
+        self.name, self.t = None, 0
+
+    @property
+    def active(self):
+        return self.t > 0
+
+    def start(self, name=None):
+        self.name = name or random.choice(GESTURES)
+        self.t = GESTURE_FRAMES[self.name]
+
+    def step(self):
+        if self.t <= 0:
+            return 0, 0, False
+        self.t -= 1
+        t = self.t
+        if self.name == "hop":
+            return 0, int(6 * (1 - ((t - 7) / 7) ** 2)), False
+        if self.name == "wiggle":
+            return (3 if (t // 3) % 2 else -3), 0, False
+        if self.name == "dance":
+            return 0, int(4 * abs(math.sin(t * math.pi / 9))), (t // 9) % 2 == 1
+        return 0, 0, (t // 4) % 2 == 1                      # spin
 
 # ------------------------------------------------------------------ Win32
 user32 = ctypes.windll.user32
@@ -127,7 +209,25 @@ def edge_rot(nx, ny):
     return 3            # right edge
 
 
-from thai_vocab import VOCAB as PHRASES   # basic Thai deck (Thai, rom, English)
+import thai_vocab as TV                   # leveled Thai deck (Thai, rom, English)
+
+CONFIG = os.path.join(os.path.expanduser("~"), ".kiropet.json")
+
+
+def load_config():
+    try:
+        with open(CONFIG, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def save_config(cfg):
+    try:
+        with open(CONFIG, "w", encoding="utf-8") as f:
+            json.dump(cfg, f)
+    except OSError:
+        pass
 
 FPS = 30
 SPEAK_EVERY = 5 * 60 * FPS               # ~5 minutes
@@ -208,7 +308,8 @@ class Pet:
         self.blink = 0
         self.next_blink = random.randint(30, 120)
         self.pause = 0
-        self.hop = 0
+        self.gest = Gesture()
+        self.flip = False
         self.rot = 0
         self.hidden = False
         self.cache = {}
@@ -258,7 +359,7 @@ class Pet:
         self.mascot = m
 
     def _say(self):
-        th, rom, eng = random.choice(PHRASES)
+        th, rom, eng = self.mgr.words.next()
         self.b_thai.config(text=th)
         self.b_eng.config(text=f"{rom}  —  {eng}" if rom else eng)
         self.bubble.deiconify()
@@ -292,14 +393,26 @@ class Pet:
 
     def _release(self, e):
         self.dragging = False
-        if not self.moved:               # a click (not a drag) -> new Thai word
-            self.hop = 14
+        if not self.moved:               # a click (not a drag) -> gesture + Thai word
+            self.gest.start()
             self._say()
 
     def _menu(self, e):
         m = tk.Menu(self.win, tearoff=0)
         m.add_command(label="🎨  Change buddy…", command=self.mgr.open_picker)
+        m.add_cascade(label="🖌️  Art style", menu=self.mgr.style_menu(m))
+        g = tk.Menu(m, tearoff=0)
+        for name in GESTURES:
+            g.add_command(label=GESTURE_LABELS[name],
+                          command=lambda n=name: self.gest.start(n))
+        m.add_cascade(label="✨  Do a gesture", menu=g)
         m.add_command(label="🗣️  Thai word now", command=self._say)
+        lv = tk.Menu(m, tearoff=0)
+        for key, name in [("all", "All levels")] + list(TV.LEVEL_NAMES.items()):
+            mark = "●" if self.mgr.level == key else "○"
+            lv.add_command(label=f"{mark}  {name}",
+                           command=lambda k=key: self.mgr.set_level(k))
+        m.add_cascade(label="📚  Thai level", menu=lv)
         buddy_on = self.mgr.deskbuddy is not None
         m.add_command(
             label="🖥️  Stop desktop buddy" if buddy_on else "🖥️  Start desktop buddy",
@@ -311,11 +424,16 @@ class Pet:
     # -- frame image (cached) --
     def _image(self, foot):
         closed = self.blink > 0 or self.sleeping
-        key = (self.mascot, closed, foot, self.rot)
+        style = self.mgr.style
+        key = (style, self.mascot, closed, foot, self.rot, self.flip)
         img = self.cache.get(key)
         if img is None:
-            grid = S.hd(S.build(self.mascot, blink=closed, foot=foot, rot=self.rot))
-            img = S.make_photo(grid, NUM, DEN)
+            if style == "cartoon":
+                img = cartoon_walk(self.mascot, closed, foot, self.rot, self.flip)
+            else:
+                grid = S.hd(S.build(self.mascot, blink=closed, foot=foot, rot=self.rot,
+                                    face=-1 if self.flip else 1))
+                img = S.make_photo(grid, NUM, DEN)
             self.cache[key] = img
         return img
 
@@ -329,8 +447,6 @@ class Pet:
             if self.next_blink <= 0:
                 self.blink = 6
                 self.next_blink = random.randint(45, 150)
-        if self.hop > 0:
-            self.hop -= 1
         if self.hwnd is None:
             self.hwnd = self.win.winfo_id()
 
@@ -365,7 +481,7 @@ class Pet:
                 self.sleeping = False
                 self.bubble.withdraw()
                 self.bubble_hold = 0
-                self.hop = 14
+                self.gest.start("hop")
             if self.sleeping:
                 if not self.bubble.winfo_viewable():
                     self.bubble.deiconify()
@@ -375,6 +491,8 @@ class Pet:
                 pass
             elif self.pause > 0:
                 self.pause -= 1
+                if not self.gest.active and random.random() < 0.01:
+                    self.gest.start()            # show off while standing still
             else:
                 if self.sprint > 0:
                     self.sprint -= 1
@@ -387,11 +505,10 @@ class Pet:
                     self.pause = random.randint(20, 70)
             px_, py_, nx, ny, _ = perimeter_point(inset, self.s)
             self.rot = edge_rot(nx, ny)          # feet on frame, head inward
-            cx, cy = px_, py_
-            if self.hop > 0:                      # hop INWARD (away from frame)
-                hb = int(6 * (1 - ((self.hop - 7) / 7) ** 2))
-                cx -= nx * hb
-                cy -= ny * hb
+            # gesture offsets: dx along the edge, dy inward (away from frame)
+            gx, gy, self.flip = self.gest.step()
+            cx = px_ - ny * gx - nx * gy
+            cy = py_ + nx * gx - ny * gy
             wx = cx - WIN_W / 2
             wy = cy - WIN_H / 2
             wl, wt, wr, wb = self.mgr.work        # keep whole pet on the monitor
@@ -430,21 +547,46 @@ class Picker:
         self.win.protocol("WM_DELETE_WINDOW", self._close)
         tk.Label(self.win, text="Choose a buddy to walk around Kiro",
                  bg="#f4f4f7", fg="#333", font=("Segoe UI", 11, "bold")
-                 ).grid(row=0, column=0, columnspan=3, pady=(12, 6))
+                 ).grid(row=0, column=0, columnspan=3, pady=(12, 2))
+        # art style toggle
+        row = tk.Frame(self.win, bg="#f4f4f7")
+        row.grid(row=1, column=0, columnspan=3, pady=(0, 4))
+        tk.Label(row, text="Art style:", bg="#f4f4f7", fg="#555",
+                 font=("Segoe UI", 9)).pack(side="left", padx=(0, 6))
+        self.style_var = tk.StringVar(value=mgr.style)
+        for st, label in (("cartoon", "Cartoon"), ("pixel", "Pixel")):
+            tk.Radiobutton(row, text=label, value=st, variable=self.style_var,
+                           bg="#f4f4f7", activebackground="#f4f4f7",
+                           font=("Segoe UI", 9),
+                           state="normal" if st == "pixel" or cartoon_ok() else "disabled",
+                           command=lambda: self.mgr.set_style(self.style_var.get())
+                           ).pack(side="left")
+        self.cells = tk.Frame(self.win, bg="#f4f4f7")
+        self.cells.grid(row=2, column=0, columnspan=3)
+        self.refresh()
+        self.win.update_idletasks()
+        self._center()
+
+    def refresh(self):
+        """(Re)draw the thumbnails in the current art style."""
+        self.style_var.set(self.mgr.style)
+        for w in self.cells.winfo_children():
+            w.destroy()
+        self.thumbs = []
         for i, m in enumerate(S.MASCOTS):
-            grid = S.hd(S.build(m, face=1))
-            img = S.make_photo(grid, 2, bg="#ffffff")
+            if self.mgr.style == "cartoon":
+                img = png(f"thumb/{m}.png")
+            else:
+                img = S.make_photo(S.hd(S.build(m, face=1)), 2, bg="#ffffff")
             self.thumbs.append(img)
-            cell = tk.Frame(self.win, bg="#ffffff", bd=1, relief="solid")
-            cell.grid(row=1 + i // 3, column=i % 3, padx=8, pady=8)
-            b = tk.Button(cell, image=img, bg="#ffffff", bd=0,
+            cell = tk.Frame(self.cells, bg="#ffffff", bd=1, relief="solid")
+            cell.grid(row=i // 3, column=i % 3, padx=8, pady=8)
+            b = tk.Button(cell, image=img, bg="#ffffff", bd=0, width=92, height=100,
                           activebackground="#eae6ff",
                           command=lambda m=m: self._choose(m))
             b.pack(padx=4, pady=(4, 0))
             tk.Label(cell, text=S.LABELS[m], bg="#ffffff", fg="#444",
                      font=("Segoe UI", 9)).pack(pady=(0, 4))
-        self.win.update_idletasks()
-        self._center()
 
     def _center(self):
         w = self.win.winfo_width()
@@ -501,6 +643,10 @@ class DeskBuddy:
         self.canvas.pack()
         self.img_id = self.canvas.create_image(DWIN_W // 2, DWIN_H // 2 - 4,
                                                anchor="center")
+        # cartoon style draws the activity prop as a second image on top
+        self.prop_id = self.canvas.create_image(DWIN_W // 2, DWIN_H // 2 - 4,
+                                                anchor="center")
+        self.gest = Gesture()
 
         # default position: bottom-right of the PRIMARY (main) screen
         sw = mgr.root.winfo_screenwidth()
@@ -563,13 +709,20 @@ class DeskBuddy:
 
     def _release(self, e):
         self.dragging = False
-        if not self.moved:                    # a poke -> jump to a new activity
+        if not self.moved:                    # a poke -> new activity + a gesture
             self._shuffle()
+            self.gest.start()
 
     def _menu(self, e):
         m = tk.Menu(self.win, tearoff=0)
         m.add_command(label="🎨  Change buddy…", command=self.mgr.open_picker)
+        m.add_cascade(label="🖌️  Art style", menu=self.mgr.style_menu(m))
         m.add_command(label="🎲  New activity", command=self._shuffle)
+        g = tk.Menu(m, tearoff=0)
+        for name in GESTURES:
+            g.add_command(label=GESTURE_LABELS[name],
+                          command=lambda n=name: self.gest.start(n))
+        m.add_cascade(label="✨  Do a gesture", menu=g)
         sub = tk.Menu(m, tearoff=0)
         for mins in (30, 45, 60, 90):
             mark = "●" if self.mgr.break_every == mins * 60 else "○"
@@ -590,16 +743,34 @@ class DeskBuddy:
         self.hover.withdraw()
 
     # -- image (cached per action/blink/bob/face) --
-    def _image(self, foot, bob):
-        key = (self.mascot, self.action, self.blink > 0, foot, bob, self.face)
+    def _image(self, foot, bob, face):
+        key = (self.mascot, self.action, self.blink > 0, foot, bob, face)
         img = self.cache.get(key)
         if img is None:
             grid = S.hd(S.build_scene(self.mascot, self.action,
                                       blink=self.blink > 0, foot=foot, bob=bob,
-                                      face=self.face))
+                                      face=face))
             img = S.make_photo(grid, D_NUM, D_DEN)
             self.cache[key] = img
         return img
+
+    def _draw(self, foot, bob):
+        gx, gy, gflip = self.gest.step()
+        face = -self.face if gflip else self.face
+        cx, cy = DWIN_W // 2 + gx, DWIN_H // 2 - 4 - gy
+        if self.mgr.style == "cartoon":
+            closed = self.blink > 0 or self.action == "sleep"
+            mirror = "x" if face < 0 else None
+            body = png(f"desk/{self.mascot}_{int(closed)}{foot}.png", mirror)
+            prop = png(f"props/{self.action}.png", mirror)
+            self.canvas.itemconfig(self.img_id, image=body)
+            self.canvas.coords(self.img_id, cx - face * CARTOON_MASCOT_DX, cy - 2 * bob)
+            self.canvas.itemconfig(self.prop_id, image=prop)
+            self.canvas.coords(self.prop_id, cx, cy - 2 * bob)
+        else:
+            self.canvas.itemconfig(self.img_id, image=self._image(foot, bob, face))
+            self.canvas.coords(self.img_id, cx, cy)
+            self.canvas.itemconfig(self.prop_id, image="")
 
     @staticmethod
     def _fmt(sec):
@@ -667,7 +838,9 @@ class DeskBuddy:
         # gentle idle bob + foot shuffle (quicker while strolling)
         bob = 1 if (self.frame // 16) % 2 else 0
         foot = (self.frame // (6 if walking else 20)) % 2
-        self.canvas.itemconfig(self.img_id, image=self._image(foot, bob))
+        if not walking and not self.gest.active and random.random() < 0.003:
+            self.gest.start()
+        self._draw(foot, bob)
 
         # labels
         if due:
@@ -694,7 +867,7 @@ class DeskBuddy:
 
 # ------------------------------------------------------------------ Manager
 class Manager:
-    def __init__(self, target, free, mascot):
+    def __init__(self, target, free, mascot, style=None, level=None):
         self.target = target.lower()
         self.free = free
         self.me = os.getpid()
@@ -710,6 +883,17 @@ class Manager:
         self.locked = False
         self.break_every = BREAK_EVERY
         self.last_unlock = time.monotonic()   # work timer resets on each unlock
+        self.cfg = load_config()
+        style = style or self.cfg.get("style", "cartoon")
+        self.style = style if style in STYLES and (style == "pixel" or cartoon_ok()) else "pixel"
+        if level:
+            self.cfg["level"] = level
+        self.level = self.cfg.get("level", "beginner")
+        if self.level != "all" and self.level not in TV.LEVEL_KEYS:
+            self.level = "beginner"
+        self.words = TV.Shuffler(TV.deck(self.level))
+        mascot = mascot or (self.cfg.get("mascot") if self.cfg.get("mascot") in S.MASCOTS
+                            else None)
         if mascot:
             self.choose(mascot)
         else:
@@ -723,7 +907,35 @@ class Manager:
         else:
             self.picker.win.lift()
 
+    def set_style(self, style):
+        if style == "cartoon" and not cartoon_ok():
+            style = "pixel"
+        self.style = style
+        self.cfg["style"] = style
+        save_config(self.cfg)
+        if self.picker is not None:
+            self.picker.refresh()
+
+    def style_menu(self, parent):
+        sub = tk.Menu(parent, tearoff=0)
+        for st, label in (("cartoon", "Cartoon"), ("pixel", "Pixel")):
+            mark = "●" if self.style == st else "○"
+            sub.add_command(label=f"{mark}  {label}",
+                            state="normal" if st == "pixel" or cartoon_ok() else "disabled",
+                            command=lambda s=st: self.set_style(s))
+        return sub
+
+    def set_level(self, level):
+        self.level = level
+        self.words = TV.Shuffler(TV.deck(level))
+        self.cfg["level"] = level
+        save_config(self.cfg)
+        if self.pet is not None:
+            self.pet._say()                   # show a word from the new level
+
     def choose(self, mascot):
+        self.cfg["mascot"] = mascot
+        save_config(self.cfg)
         if self.pet is None:
             self.pet = Pet(self, mascot)
         else:
@@ -798,13 +1010,24 @@ class Manager:
         self.root.mainloop()
 
 
+kernel32.CreateMutexW.restype = wintypes.HANDLE
+kernel32.CreateMutexW.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mascot", choices=S.MASCOTS, default=None)
     ap.add_argument("--target", default="kiro")
     ap.add_argument("--free", action="store_true")
+    ap.add_argument("--style", choices=STYLES, default=None)
+    ap.add_argument("--level", choices=["all"] + TV.LEVEL_KEYS, default=None)
     a = ap.parse_args()
-    Manager(a.target, a.free, a.mascot).run()
+    # Only ever one screen pet: if one is already running, quietly leave.
+    global _instance
+    _instance = kernel32.CreateMutexW(None, False, "Local\\KiroPetScreenPet")
+    if kernel32.GetLastError() == 183:              # ERROR_ALREADY_EXISTS
+        return
+    Manager(a.target, a.free, a.mascot, a.style, a.level).run()
 
 
 if __name__ == "__main__":

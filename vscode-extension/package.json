@@ -1,0 +1,311 @@
+{
+  "name": "kiropet",
+  "displayName": "KiroPet",
+  "description": "A cute GMMTV buddy (cartoon or pixel style) that walks around your editor and teaches you Thai words, one level at a time.",
+  "version": "0.4.0",
+  "publisher": "yuningw",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Education",
+    "Other"
+  ],
+  "keywords": [
+    "pet",
+    "thai",
+    "vocabulary",
+    "kiro",
+    "gmmtv"
+  ],
+  "icon": "media/icon.png",
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "kiropet.view",
+          "name": "KiroPet",
+          "when": "kiropet.panelOn"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "kiropet.choosePet",
+        "title": "Choose pet (panel / screen / both)…",
+        "category": "KiroPet",
+        "icon": "$(heart)"
+      },
+      {
+        "command": "kiropet.startScreenPet",
+        "title": "Start screen pet (walks around the window)",
+        "category": "KiroPet"
+      },
+      {
+        "command": "kiropet.stopScreenPet",
+        "title": "Stop screen pet",
+        "category": "KiroPet"
+      },
+      {
+        "command": "kiropet.nextWord",
+        "title": "Next Thai word",
+        "category": "KiroPet",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "kiropet.chooseLevel",
+        "title": "Choose Thai level",
+        "category": "KiroPet",
+        "icon": "$(mortar-board)"
+      },
+      {
+        "command": "kiropet.changeBuddy",
+        "title": "Change buddy",
+        "category": "KiroPet",
+        "icon": "$(heart)"
+      },
+      {
+        "command": "kiropet.timer",
+        "title": "Timer / alarm…",
+        "category": "KiroPet",
+        "icon": "$(watch)"
+      },
+      {
+        "command": "kiropet.breakReminder",
+        "title": "Break reminder…",
+        "category": "KiroPet",
+        "icon": "$(coffee)"
+      },
+      {
+        "command": "kiropet.activity",
+        "title": "Do an activity…",
+        "category": "KiroPet",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "kiropet.toggleStyle",
+        "title": "Switch art style (pixel / cartoon)",
+        "category": "KiroPet",
+        "icon": "$(color-mode)"
+      },
+      {
+        "command": "kiropet.show",
+        "title": "Show pet",
+        "category": "KiroPet"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "kiropet.timer",
+          "when": "view == kiropet.view",
+          "group": "navigation@0"
+        },
+        {
+          "command": "kiropet.nextWord",
+          "when": "view == kiropet.view",
+          "group": "navigation@1"
+        },
+        {
+          "command": "kiropet.chooseLevel",
+          "when": "view == kiropet.view",
+          "group": "navigation@2"
+        },
+        {
+          "command": "kiropet.changeBuddy",
+          "when": "view == kiropet.view",
+          "group": "navigation@3"
+        },
+        {
+          "command": "kiropet.toggleStyle",
+          "when": "view == kiropet.view",
+          "group": "navigation@4"
+        }
+      ],
+      "webview/context": [
+        {
+          "command": "kiropet.changeBuddy",
+          "when": "webviewId == 'kiropet.view'",
+          "group": "kiropet@1"
+        },
+        {
+          "command": "kiropet.toggleStyle",
+          "when": "webviewId == 'kiropet.view'",
+          "group": "kiropet@2"
+        },
+        {
+          "command": "kiropet.chooseLevel",
+          "when": "webviewId == 'kiropet.view'",
+          "group": "kiropet@3"
+        },
+        {
+          "command": "kiropet.nextWord",
+          "when": "webviewId == 'kiropet.view'",
+          "group": "kiropet@4"
+        },
+        {
+          "command": "kiropet.activity",
+          "when": "webviewId == 'kiropet.view'",
+          "group": "kiropet@5"
+        },
+        {
+          "command": "kiropet.timer",
+          "when": "webviewId == 'kiropet.view'",
+          "group": "timers@1"
+        },
+        {
+          "command": "kiropet.breakReminder",
+          "when": "webviewId == 'kiropet.view'",
+          "group": "timers@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "KiroPet",
+      "properties": {
+        "kiropet.startup": {
+          "type": "string",
+          "default": "ask",
+          "enum": [
+            "ask",
+            "panel",
+            "screen",
+            "both",
+            "none"
+          ],
+          "enumDescriptions": [
+            "Ask which pet to start each time the editor opens",
+            "Always start the panel pet",
+            "Always start the screen pet (walks around the window, Windows only)",
+            "Always start both",
+            "Start no pet"
+          ],
+          "description": "Which pet starts when the editor opens. Nothing starts on its own unless you pick it here."
+        },
+        "kiropet.mascot": {
+          "type": "string",
+          "default": "muvmuv",
+          "enum": [
+            "muvmuv",
+            "lunar",
+            "any",
+            "jewel",
+            "vimmy",
+            "wesley",
+            "goldie_red",
+            "goldie_brown",
+            "lolo"
+          ],
+          "enumItemLabels": [
+            "MuvMuv",
+            "Lunar",
+            "Any",
+            "Jewel",
+            "Vimmy",
+            "Wesley",
+            "Goldie (red)",
+            "Goldie (brown)",
+            "LOLO"
+          ],
+          "description": "Which buddy walks around."
+        },
+        "kiropet.style": {
+          "type": "string",
+          "default": "cartoon",
+          "enum": [
+            "cartoon",
+            "pixel"
+          ],
+          "enumDescriptions": [
+            "Smooth cartoon drawing",
+            "Retro pixel art"
+          ],
+          "description": "Art style for the buddy."
+        },
+        "kiropet.thaiLevel": {
+          "type": "string",
+          "default": "beginner",
+          "enum": [
+            "beginner",
+            "elementary",
+            "intermediate",
+            "advanced",
+            "all"
+          ],
+          "enumDescriptions": [
+            "Survival basics: greetings, numbers, pronouns, core verbs",
+            "Everyday life: family, food, time, places, feelings",
+            "Connecting ideas: linking words, particles, classifiers, work & study",
+            "News & formal Thai: government, economy, formal verbs, idioms",
+            "Every level mixed together"
+          ],
+          "description": "Which Thai vocabulary level the buddy teaches."
+        },
+        "kiropet.wordIntervalMinutes": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 120,
+          "description": "Show a new Thai word every N minutes while the editor is focused."
+        },
+        "kiropet.quizMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Hide the English meaning until you click the speech bubble."
+        },
+        "kiropet.showInStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Also show the current Thai word in the status bar."
+        },
+        "kiropet.activities": {
+          "type": "boolean",
+          "default": true,
+          "description": "Let the buddy stop now and then for little activities (coffee, music, games…)."
+        },
+        "kiropet.breakReminderMinutes": {
+          "type": "number",
+          "default": 60,
+          "enum": [
+            0,
+            30,
+            45,
+            60,
+            90
+          ],
+          "enumItemLabels": [
+            "Off",
+            "30 min",
+            "45 min",
+            "60 min",
+            "90 min"
+          ],
+          "description": "Remind you to take a break after this much work. 0 turns it off."
+        },
+        "kiropet.breakResetMinutes": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 60,
+          "description": "Being away from the editor this long counts as a break and resets the work timer."
+        },
+        "kiropet.screenPet.script": {
+          "type": "string",
+          "default": "",
+          "description": "Path to kiro_pet.py for the screen pet. Left empty, KiroPet looks in the open folder or asks you once."
+        },
+        "kiropet.screenPet.python": {
+          "type": "string",
+          "default": "",
+          "description": "Python used to run the screen pet. Empty = pythonw on PATH. Example: C:\\Users\\you\\AppData\\Local\\Programs\\Python\\Python313\\pythonw.exe"
+        }
+      }
+    }
+  }
+}

@@ -9,13 +9,14 @@ import tkinter as tk
 W, H = 22, 24                     # sprite grid
 TRANSPARENT = "#0b1e0c"           # -> transparent on the pet window
 
-MASCOTS = ["muvmuv", "lunar", "any", "whitedog", "goldie_red", "goldie_brown",
-           "lolo", "butterbear", "buriburi"]
+GMM = ["muvmuv", "lunar", "any", "jewel", "vimmy", "wesley"]
+CLASSIC = ["goldie_red", "goldie_brown", "lolo"]
+MASCOTS = GMM + CLASSIC
 LABELS = {
     "muvmuv": "MuvMuv", "lunar": "Lunar", "any": "Any",
-    "whitedog": "Shiro", "goldie_red": "Goldie ❤", "goldie_brown": "Goldie \U0001f9e5",
-    "lolo": "LOLO \U0001f353", "butterbear": "Butter bear",
-    "buriburi": "Buriburizaemon \U0001f437",
+    "jewel": "Jewel", "vimmy": "Vimmy", "wesley": "Wesley",
+    "goldie_red": "Goldie ❤", "goldie_brown": "Goldie \U0001f9e5",
+    "lolo": "LOLO \U0001f353",
 }
 
 EYE = "#39304a"
@@ -91,10 +92,10 @@ def build(mascot, blink=False, foot=0, face=1, rot=0):
     g = new_grid()
     {
         "muvmuv": _muvmuv, "lunar": _lunar, "any": _any,
-        "whitedog": _whitedog,
+        "jewel": _jewel, "vimmy": _vimmy, "wesley": _wesley,
         "goldie_red": lambda g, b, f: _goldie(g, b, f, "red"),
         "goldie_brown": lambda g, b, f: _goldie(g, b, f, "brown"),
-        "lolo": _lolo, "butterbear": _butterbear, "buriburi": _buriburi,
+        "lolo": _lolo,
     }[mascot](g, blink, foot)
     if face < 0:
         g = [row[::-1] for row in g]
@@ -103,123 +104,233 @@ def build(mascot, blink=False, foot=0, face=1, rot=0):
     return g
 
 
-def _muvmuv(g, blink, foot):          # white pup in an orange tabby-cat hood
-    hood, ol, red = "#f5a04a", "#c9772a", "#d6403a"
-    w, wol = "#fffdf8", "#e3ddd2"
-    nose, tong, bl = "#6b4636", "#f08a9a", "#f8c0cc"
-    feet(g, 8, 14, 21, w, wol, foot)
-    odisc(g, 11, 16, 6, w, wol)                 # fluffy white body
-    for ex in (7, 15):                          # hood cat ears
-        tri_up(g, ex, 5, 5, 6, ol)
-        tri_up(g, ex, 4, 4, 4, hood)
-        px(g, ex, 2, red)                       # red ear stripe
-    odisc(g, 11, 9, 7, hood, ol)                # orange hood
-    disc(g, 11, 11, 5, w)                       # white face opening
-    rect(g, 9, 3, 9, 4, red)                    # tabby stripes on top
-    rect(g, 11, 2, 11, 3, red)
-    rect(g, 13, 3, 13, 4, red)
-    px(g, 5, 8, red); px(g, 5, 9, red)          # cheek stripes on the hood
-    px(g, 17, 8, red); px(g, 17, 9, red)
-    eyes(g, 8, 14, 9, blink)
-    px(g, 10, 12, nose); px(g, 12, 12, nose)    # heart nose…
-    px(g, 11, 13, nose)
-    px(g, 11, 14, tong)                         # …tongue peeking
-    rect(g, 6, 13, 7, 13, bl); rect(g, 15, 13, 16, 13, bl)   # blush
-    rect(g, 7, 15, 15, 16, hood)                # orange neckerchief
-    px(g, 6, 15, hood); px(g, 16, 15, hood)
-    px(g, 10, 17, hood); px(g, 12, 17, hood); px(g, 11, 18, hood)   # knot tails
+# --- GMMTV mascots, redrawn from "Design Reference GMM/". They share the
+# official chibi pose: a big wide head, two front paws peeking out at the
+# bottom and a little body underneath.
+def oval(g, cx, cy, rx, ry, c):
+    for y in range(int(cy - ry) - 1, int(cy + ry) + 2):
+        for x in range(int(cx - rx) - 1, int(cx + rx) + 2):
+            if ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1.08:
+                px(g, x, y, c)
 
 
-def _lunar(g, blink, foot):
-    w, ol, bk = "#ffffff", "#c9d0d8", "#26292f"
-    ylo, yld, teal = "#ffcf3f", "#e6a81e", "#27bcd0"
-    shell, shol = "#f0ddaa", "#c9ab6a"
-    # egg / penguin body
-    odisc(g, 11, 16, 6, w, ol)
-    # hatched eggshell it sits in (zigzag cracked rim)
-    rect(g, 6, 19, 16, 21, shell)
-    rect(g, 6, 19, 6, 21, shol); rect(g, 16, 19, 16, 21, shol)
-    rect(g, 7, 22, 15, 22, shol)
-    for zx in (6, 8, 10, 12, 14, 16):           # crack teeth
-        px(g, zx, 18, shell)
-    px(g, 11, 20, shol); px(g, 12, 21, shol)    # hairline crack
-    disc(g, 5, 15, 2, bk); disc(g, 17, 15, 2, bk)           # black flippers
+def ooval(g, cx, cy, rx, ry, fill, outline):
+    oval(g, cx, cy, rx, ry, outline)
+    oval(g, cx, cy, rx - 1, ry - 1, fill)
+
+
+def ear(g, tipx, tipy, h, w, c):
+    """Triangle with its tip at (tipx, tipy), widening downward."""
+    for i in range(h):
+        half = int(round((w / 2) * i / max(1, h - 1)))
+        rect(g, tipx - half, tipy + i, tipx + half, tipy + i, c)
+
+
+def big_eye(g, ex, ey, blink, col=EYE, glint=HI):
+    """Tall, round, shiny eye (3 wide x 4 tall) - the GMM look."""
+    if blink:
+        rect(g, ex - 1, ey + 1, ex + 1, ey + 1, col)
+        px(g, ex - 2, ey, col); px(g, ex + 2, ey, col)
+        return
+    rect(g, ex - 1, ey - 1, ex + 1, ey + 2, col)
+    px(g, ex, ey, glint)          # centred shine survives Scale2x cleanly
+
+
+def heart(g, x, y, c):
+    """3x3 heart with its top-left corner at (x, y)."""
+    px(g, x, y, c); px(g, x + 2, y, c)
+    rect(g, x, y + 1, x + 2, y + 1, c)
+    px(g, x + 1, y + 2, c)
+
+
+def blush(g, y, c, lx=5, rx=16):
+    """The '||' blush marks every GMM mascot has under its eyes."""
+    for x in (lx, rx):
+        px(g, x, y, c); px(g, x + 1, y, c)
+
+
+def _muvmuv(g, blink, foot):          # fluffy white pup in an orange cat hood
+    hood, hol, stripe = "#f7b67e", "#d98c50", "#ee7046"
+    w, wol = "#fffdf8", "#e4ddd3"
+    nose, tong, red = "#7a4a3a", "#f2899a", "#e8545a"
+    milk, milkd, mint = "#f7b9c8", "#d98aa2", "#9fd9c0"
+    feet(g, 8, 14, 22, w, wol, foot)
+    odisc(g, 11, 19, 4, w, wol)                 # fluffy white body
+    for ex in (4, 18):                          # hood cat ears
+        ear(g, ex, 1, 6, 6, hol)
+        ear(g, ex, 2, 4, 3, hood)
+    ooval(g, 11, 10, 10, 7, hood, hol)          # big orange hood
+    oval(g, 11, 12, 6, 4.6, w)                  # white face opening
+    for sy in (9, 11):                          # tabby stripes on both sides
+        rect(g, 1, sy, 2, sy, stripe); rect(g, 19, sy, 20, sy, stripe)
+    px(g, 8, 4, stripe); px(g, 8, 5, stripe)    # stripes under the carton
+    # pink strawberry-milk carton balanced on the hood (signature prop)
+    rect(g, 11, 0, 14, 4, milk)
+    rect(g, 11, 0, 14, 0, mint)
+    px(g, 12, 2, w); px(g, 13, 3, w); px(g, 12, 3, w)       # little heart
+    px(g, 11, 4, milkd); px(g, 14, 4, milkd)
+    big_eye(g, 8, 11, blink); big_eye(g, 14, 11, blink)
+    px(g, 10, 14, nose); px(g, 12, 14, nose)    # heart nose…
+    px(g, 11, 14, nose); px(g, 11, 15, nose)
+    px(g, 10, 16, nose); px(g, 12, 16, nose)    # :3 mouth
+    px(g, 11, 16, tong)                         # …tongue peeking
+    blush(g, 14, red)
+    rect(g, 8, 17, 14, 17, hood)                # orange neckerchief knot
+    rect(g, 9, 18, 13, 18, hood); px(g, 11, 19, hol)
+    odisc(g, 5, 18, 2, w, wol); odisc(g, 17, 18, 2, w, wol)   # front paws
+
+
+def _lunar(g, blink, foot):           # panda-duck with heart eyes
+    w, ol, bk = "#ffffff", "#cdd3da", "#26292f"
+    ylo, yld = "#f6d55c", "#dcb23a"
+    blue, yel, red = "#6cc3d8", "#f3e36a", "#e05050"
     off = 1 if foot else 0
-    odisc(g, 8, 22 - off, 2, ylo, yld)                       # yellow duck feet
+    odisc(g, 8, 22 - off, 2, ylo, yld)          # yellow duck feet
     odisc(g, 14, 22 + off, 2, ylo, yld)
-    # panda ears
-    disc(g, 5, 3, 3, bk); disc(g, 17, 3, 3, bk)
-    # teal flower on right ear
-    for dx, dy in ((0, -2), (-2, 0), (2, 0), (0, 2), (-1, -1), (1, 1), (1, -1), (-1, 1)):
-        px(g, 17 + dx, 3 + dy, teal)
-    px(g, 17, 3, "#fff6b0")
-    # tiny heart floating over the head
-    px(g, 10, 0, "#ffd7e6"); px(g, 12, 0, "#ffd7e6"); px(g, 11, 1, "#ffd7e6")
-    # head
-    odisc(g, 11, 9, 7, w, ol)
-    disc(g, 7, 8, 3, bk); disc(g, 15, 8, 3, bk)             # eye patches
-    for ex, glint in ((7, "#ffd23f"), (15, "#3fd6e6")):      # heart-sparkle eyes
-        disc(g, ex, 8, 2, w)
+    odisc(g, 11, 19, 4, w, ol)                  # round white body
+    disc(g, 4, 4, 3, bk); disc(g, 18, 4, 3, bk) # panda ears
+    ooval(g, 11, 10, 10, 7, w, ol)              # big white head
+    for dx, dy in ((0, -2), (-2, 0), (2, 0), (0, 2),        # blue flower
+                   (-1, -1), (1, 1), (1, -1), (-1, 1)):
+        px(g, 17 + dx, 4 + dy, blue)
+    px(g, 17, 4, yel)
+    heart(g, 8, 1, blue); heart(g, 10, 0, yel)  # two hearts on top
+    px(g, 4, 3, red)                            # red heart on the left ear
+    for ex, iris in ((7, blue), (15, yel)):     # black patches, heart eyes
+        oval(g, ex, 11, 3.2, 2.6, bk)
         if blink:
-            rect(g, ex - 1, 8, ex + 1, 8, bk)
+            rect(g, ex - 1, 11, ex + 1, 11, w)
         else:
-            disc(g, ex, 8, 1, bk)
-            px(g, ex, 7, glint); px(g, ex - 1, 7, HI)
-    # yellow duck beak
-    rect(g, 9, 11, 13, 12, ylo); px(g, 8, 11, ylo); px(g, 14, 11, ylo)
-    rect(g, 9, 13, 13, 13, yld)
-    rect(g, 4, 11, 5, 12, "#ffb3c8"); rect(g, 17, 11, 18, 12, "#ffb3c8")
+            disc(g, ex, 11, 1, w)
+            px(g, ex, 11, iris); px(g, ex - 1, 11, iris)
+            px(g, ex + 1, 10, HI)
+    oval(g, 11, 14, 3, 1.5, ylo)                # yellow duck beak
+    rect(g, 9, 15, 13, 15, yld)
+    blush(g, 15, red, 4, 17)
+    disc(g, 5, 18, 2, bk); disc(g, 17, 18, 2, bk)            # black paws
 
 
-def _any(g, blink, foot):             # bunny-poncho girl (butterfly mark)
-    w, ol, hair, skin = "#fffdf8", "#e3e0e8", "#2b2530", "#fdeee4"
-    org, mag = "#f28c28", "#e0397e"
-    feet(g, 8, 14, 21, "#f2a8bc", "#d87f98", foot)          # pink socks
-    odisc(g, 11, 16, 6, w, ol)                  # poncho body
-    px(g, 12, 19, org); px(g, 14, 19, mag)      # butterfly wings…
-    px(g, 13, 20, mag)                          # …and body
-    for ex in (8, 14):                          # bunny ears, pink tips
-        rect(g, ex - 1, 0, ex + 1, 6, w); px(g, ex - 2, 4, w); px(g, ex + 2, 4, w)
-        rect(g, ex - 1, 0, ex + 1, 1, "#f7b8cc")
-        rect(g, ex, 2, ex, 4, "#ffd0e0")
-    odisc(g, 11, 9, 7, w, ol)                   # hood
-    disc(g, 11, 9, 6, hair)                     # bob hair
-    disc(g, 11, 11, 4, skin)                    # pale face
-    rect(g, 7, 6, 15, 8, hair)                  # bangs
-    px(g, 8, 9, hair); px(g, 8, 10, hair)       # side-swept lock
-    rect(g, 13, 5, 13, 6, org)                  # two little clips
-    rect(g, 15, 5, 15, 6, mag)
-    for ex in (9, 13):                          # small simple dot eyes
+def _any(g, blink, foot):             # girl in a bunny hood with fairy wings
+    hood, ol = "#fffbe2", "#e4dcb8"
+    tip, hair, skin = "#f4c6d8", "#1f1a22", "#fbeee6"
+    wing_b, wing_p = "#a8e0ea", "#f6c4d4"
+    clip_o, clip_p, red = "#f08a5d", "#e86aa0", "#e8545a"
+    oval(g, 2, 12, 2.5, 4, wing_b); oval(g, 20, 12, 2.5, 4, wing_b)   # wings
+    oval(g, 2, 13, 1.5, 2, wing_p); oval(g, 20, 13, 1.5, 2, wing_p)
+    off = 1 if foot else 0
+    odisc(g, 8, 22 - off, 2, "#f2a8bc", "#d87f98")           # pink boot
+    odisc(g, 14, 22 + off, 2, "#f6a36a", "#d97f45")          # orange boot
+    odisc(g, 11, 19, 4, hood, ol)               # poncho body
+    for x0 in (4, 14):                          # long bunny ears, pink tips
+        rr(g, x0, 0, x0 + 4, 7, hood, ol)
+        rect(g, x0 + 1, 1, x0 + 3, 2, tip)
+    ooval(g, 11, 11, 9, 7, hood, ol)            # hood
+    oval(g, 11, 11, 7, 5.6, hair)               # black bob
+    oval(g, 11, 14, 5.5, 3, skin)               # face peeking under bangs
+    px(g, 10, 11, hair); px(g, 13, 11, hair)    # spiky fringe
+    rect(g, 13, 7, 14, 7, clip_o)               # two hair clips
+    rect(g, 15, 8, 16, 8, clip_p)
+    px(g, 10, 2, clip_p); px(g, 12, 2, clip_p)  # butterfly between the ears
+    px(g, 11, 3, "#b0507a")
+    px(g, 10, 4, wing_p); px(g, 12, 4, wing_p)
+    big_eye(g, 8, 13, blink, hair); big_eye(g, 14, 13, blink, hair)
+    px(g, 11, 15, "#f2a0b0")                    # tiny pink nose
+    blush(g, 15, red, 6, 15)
+    odisc(g, 5, 18, 2, hood, ol); odisc(g, 17, 18, 2, hood, ol)   # paws
+
+
+def _jewel(g, blink, foot):           # cream fox-cat with a red bow
+    cr, col = "#fff6ea", "#e6d4bf"
+    red_ear, earin = "#97282c", "#f2b2ae"
+    brown, lash, pink = "#6b3420", "#3e2216", "#f4a4a8"
+    red, redd = "#d4212a", "#a8141c"
+    feet(g, 8, 14, 22, cr, col, foot)
+    odisc(g, 11, 19, 4, cr, col)                # body
+    for ex in (4, 18):                          # tall dark-red ears
+        ear(g, ex, 0, 8, 6, red_ear)
+        ear(g, ex, 3, 5, 3, earin)
+    ooval(g, 11, 11, 10, 7, cr, col)            # fluffy head
+    for x, y in ((8, 4), (9, 3), (10, 4), (9, 5)):           # infinity curl
+        px(g, x, y, red_ear)
+    for x, y in ((12, 4), (13, 3), (14, 4), (13, 5)):
+        px(g, x, y, pink)
+    px(g, 11, 4, red_ear)
+    px(g, 13, 7, pink); px(g, 14, 7, pink)      # pink pom-pom fringe
+    for ex, out in ((7, -1), (15, 1)):          # big brown eyes, pink shadow
+        if not blink:
+            rect(g, ex - 1, 9, ex + 1, 9, "#f7c6c6")
+            px(g, ex + 2 * out, 9, lash)        # winged outer lash
+        big_eye(g, ex, 11, blink, brown)
+    px(g, 11, 13, red)                          # tiny nose
+    px(g, 10, 14, brown); px(g, 12, 14, brown)  # cat mouth
+    blush(g, 14, red, 4, 17)
+    rect(g, 6, 17, 16, 17, red)                 # red collar…
+    rect(g, 9, 18, 13, 18, red)                 # …and bow
+    px(g, 11, 18, redd); px(g, 9, 19, red); px(g, 13, 19, red)
+    odisc(g, 5, 18, 2, cr, col); odisc(g, 17, 18, 2, cr, col)    # paws
+
+
+def _vimmy(g, blink, foot):           # cavalier spaniel with a bee on her head
+    cr, col = "#fbe9d0", "#e0c39c"
+    brown, brownd = "#a86b3d", "#7e4c26"
+    bee, beek, wing = "#f6d33c", "#2a2420", "#d8f0ff"
+    nose, red = "#4a2a1a", "#e8545a"
+    feet(g, 8, 14, 22, "#eef0f6", "#c8ccd8", foot)            # white boots
+    odisc(g, 11, 19, 4, bee, "#d8b42a")         # bumblebee outfit
+    rect(g, 8, 19, 14, 19, beek)
+    ooval(g, 2, 13, 2.6, 6, brown, brownd)      # long curly ears
+    ooval(g, 20, 13, 2.6, 6, brown, brownd)
+    for ey in (10, 13, 16):                     # curls
+        px(g, 2, ey, cr); px(g, 20, ey + 1, cr)
+    ooval(g, 11, 10, 8.5, 7, cr, col)           # head
+    oval(g, 7, 10, 3, 3.6, brown)               # brown patches round the eyes
+    oval(g, 15, 10, 3, 3.6, brown)
+    px(g, 10, 6, col); px(g, 11, 7, col); px(g, 12, 6, col)  # forehead curl
+    px(g, 7, 2, beek); px(g, 6, 1, beek)        # antenna headband
+    px(g, 15, 2, beek); px(g, 16, 1, beek)
+    oval(g, 11, 3, 2.4, 1.6, bee)               # the bee
+    px(g, 11, 3, beek); px(g, 12, 3, beek)
+    px(g, 10, 1, wing); px(g, 11, 1, wing)
+    for ex in (7, 15):                          # black eyes with flower glint
         if blink:
-            rect(g, ex - 1, 11, ex, 11, hair)
-        else:
-            rect(g, ex - 1, 10, ex, 11, hair)
-            px(g, ex - 1, 10, HI)
-    px(g, 11, 13, "#e08898")                    # tiny nose-mouth
-    rect(g, 7, 12, 8, 12, "#ffb3c8"); rect(g, 14, 12, 15, 12, "#ffb3c8")
+            rect(g, ex - 1, 11, ex + 1, 11, beek)
+            continue
+        big_eye(g, ex, 10, False, beek)
+    px(g, 10, 13, nose); px(g, 11, 13, nose); px(g, 12, 13, nose)
+    px(g, 11, 14, nose)
+    px(g, 10, 15, nose); px(g, 12, 15, nose)    # smile
+    blush(g, 14, red, 6, 15)
+    odisc(g, 6, 18, 2, cr, col); odisc(g, 16, 18, 2, cr, col)    # paws
 
 
-def _whitedog(g, blink, foot):        # Shiro (Shin-chan's cloud-fluff dog)
-    w, ol, bk, blu = "#ffffff", "#cfd4da", "#3a3540", "#4aa8e0"
-    # small body under a big round head
-    odisc(g, 11, 19, 4, w, ol)
-    feet(g, 9, 13, 22, w, ol, foot)
-    odisc(g, 6, 19, 2, w, ol); odisc(g, 16, 19, 2, w, ol)  # front paws
-    odisc(g, 3, 21, 2, w, ol); px(g, 3, 21, ol)            # curly tail
-    rect(g, 8, 16, 14, 17, blu)                 # blue collar
-    # floppy left ear / perked right ear, both anchored to the skull
-    rr(g, 2, 6, 5, 12, w, ol)
-    rr(g, 17, 0, 20, 7, w, ol)
-    odisc(g, 11, 8, 7, w, ol)                   # big head
-    px(g, 8, 5, bk); px(g, 9, 4, bk)            # worried brow arcs
-    px(g, 13, 4, bk); px(g, 14, 5, bk)
-    for ex in (8, 14):                          # tiny wide-set dot eyes
+def _wesley(g, blink, foot):          # puppy in a blue shark hood
+    blue, blued, white = "#4f86d8", "#2c5aa8", "#ffffff"
+    tan, tand, face = "#e2bd93", "#c39466", "#fbead6"
+    brown, red, tong = "#6b3f2a", "#d93a3a", "#f08aa0"
+    off = 1 if foot else 0
+    odisc(g, 8, 22 - off, 2, red, "#a82828")    # red shoes
+    odisc(g, 14, 22 + off, 2, red, "#a82828")
+    ooval(g, 11, 11, 10, 10, blue, blued)       # round shark-hood body
+    oval(g, 11, 16, 6, 4, white)                # white shark belly
+    rect(g, 9, 2, 13, 2, red)                   # shark teeth crown
+    px(g, 9, 1, red); px(g, 11, 1, red); px(g, 13, 1, red)
+    for sx in (5, 7, 15, 17):                   # stitch marks on the hood
+        px(g, sx, 3 if sx in (7, 15) else 4, blued)
+    oval(g, 11, 10, 6, 5, face)                 # face
+    oval(g, 7, 9, 2.6, 2.2, tan)                # tan patches
+    oval(g, 15, 9, 2.6, 2.2, tan)
+    ooval(g, 3, 11, 2.2, 4, tan, tand)          # floppy ears held up
+    ooval(g, 19, 11, 2.2, 4, tan, tand)
+    for ex in (7, 15):
         if blink:
-            rect(g, ex - 1, 7, ex + 1, 7, bk)
+            rect(g, ex - 1, 10, ex + 1, 10, brown)
         else:
-            px(g, ex, 7, bk)
-    for x, y in ((9, 10), (10, 11), (11, 10), (12, 11), (13, 10)):  # wavy mouth
-        px(g, x, y, bk)
+            big_eye(g, ex, 9, False, brown)
+    px(g, 10, 12, brown); px(g, 11, 12, brown); px(g, 12, 12, brown)
+    px(g, 10, 13, brown); px(g, 12, 13, brown)  # :3 mouth
+    px(g, 11, 14, tong)                         # happy tongue
+    blush(g, 13, red, 6, 15)
+    odisc(g, 4, 17, 2, blue, blued); odisc(g, 18, 17, 2, blue, blued)  # fins
 
 
 def _goldie(g, blink, foot, outfit):
@@ -288,80 +399,6 @@ def _lolo(g, blink, foot):        # strawberry kitten (Lingorm)
     rect(g, 5, 12, 6, 13, pk); rect(g, 16, 12, 17, 13, pk)  # blush
 
 
-def _butterbear(g, blink, foot):  # butterbear.co café bear
-    cr, ol, mz = "#ecc794", "#c99f63", "#f8ead0"
-    grn, grnd = "#a8cdb4", "#7fae8d"
-    apr = "#fdfbf2"
-    brn = "#6b4432"
-    feet(g, 8, 14, 21, cr, ol, foot)
-    odisc(g, 11, 16, 6, cr, ol)                 # body
-    odisc(g, 4, 16, 2, cr, ol); odisc(g, 18, 16, 2, cr, ol)   # arms
-    rect(g, 8, 17, 14, 21, apr)                 # white café apron
-    for sx in (8, 10, 12, 14):                  # green scallop trim
-        px(g, sx, 22, grn)
-    rect(g, 8, 21, 14, 21, grn)
-    odisc(g, 5, 4, 3, cr, ol); odisc(g, 17, 4, 3, cr, ol)     # round ears
-    disc(g, 5, 4, 1, mz); disc(g, 17, 4, 1, mz)
-    odisc(g, 11, 9, 7, cr, ol)                  # big round head
-    disc(g, 11, 12, 3, mz)                      # lighter muzzle
-    for ex in (8, 14):                          # big white eyes, dark pupils
-        if blink:
-            rect(g, ex - 2, 9, ex + 1, 9, brn)
-        else:
-            disc(g, ex, 9, 2, HI)
-            rect(g, ex - 1, 8, ex, 10, EYE)     # pupil
-            px(g, ex, 8, HI)                    # glint
-    px(g, 11, 11, brn)                          # little brown nose
-    px(g, 10, 12, brn); px(g, 12, 12, brn)      # open smile…
-    px(g, 11, 13, "#f2917e")                    # …with tongue
-    rect(g, 5, 11, 6, 12, "#f5b3a0"); rect(g, 16, 11, 17, 12, "#f5b3a0")  # cheeks
-    disc(g, 9, 15, 1, grn); disc(g, 13, 15, 1, grn)           # green neck bow
-    px(g, 11, 15, grnd)
-
-
-def _buriburi(g, blink, foot):    # Buriburizaemon, the "hero" pig
-    pig, ol = "#f2a390", "#c97a66"
-    sn, snol, nost = "#f7c3ad", "#d99680", "#8a5040"
-    bk = "#26232b"
-    pants, pol = "#8f7fc0", "#6f5fa0"
-    red, gold, blade = "#d6403a", "#f2c94c", "#f6e6df"
-    # pointy pig ears
-    tri_up(g, 5, 4, 4, 5, ol); tri_up(g, 5, 3, 3, 3, pig)
-    tri_up(g, 17, 4, 4, 5, ol); tri_up(g, 17, 3, 3, 3, pig)
-    # big head
-    odisc(g, 11, 8, 7, pig, ol)
-    # thick angled scowl eyebrows
-    rect(g, 5, 4, 6, 4, bk); rect(g, 7, 3, 9, 3, bk)
-    rect(g, 13, 3, 15, 3, bk); rect(g, 16, 4, 17, 4, bk)
-    # tiny wide-set eyes under the brows
-    if blink:
-        rect(g, 6, 6, 8, 6, bk); rect(g, 14, 6, 16, 6, bk)
-    else:
-        px(g, 7, 6, bk); px(g, 15, 6, bk)
-    # huge snout mask
-    disc(g, 9, 10, 3, snol); disc(g, 13, 10, 3, snol)
-    disc(g, 9, 10, 2, sn); disc(g, 13, 10, 2, sn)
-    rect(g, 10, 8, 12, 12, sn)
-    px(g, 9, 10, nost); px(g, 13, 10, nost)     # nostrils
-    px(g, 11, 12, nost)                         # small mouth
-    # bare chest, hands on hips
-    rect(g, 7, 15, 15, 18, pig)
-    px(g, 6, 16, pig); px(g, 16, 16, pig)
-    odisc(g, 4, 16, 2, pig, ol); odisc(g, 18, 16, 2, pig, ol)
-    px(g, 8, 17, ol); px(g, 14, 17, ol)         # chest dots
-    # purple pants, heroic wide stance
-    rect(g, 6, 19, 16, 20, pants)
-    rect(g, 6, 19, 16, 19, pol)                 # waistband
-    off = 1 if foot else 0
-    rect(g, 6, 21, 9, 23 - off, pants)          # left leg
-    rect(g, 13, 21, 16, 22 + off, pants)        # right leg
-    # toy sword at his side (drawn over the arm)
-    rect(g, 19, 11, 19, 13, red)                # handle
-    rect(g, 18, 14, 20, 14, gold)               # guard
-    rect(g, 19, 15, 19, 20, blade)              # blade
-    px(g, 20, 16, blade)
-
-
 # ----------------------------------------------------------- action scenes
 # The desktop buddy renders a wider "scene" grid: the mascot plus an 8-bit
 # prop for whatever it's currently doing. Actions are shuffled at random.
@@ -383,6 +420,7 @@ ACTION_LABELS = {
     "noodles": "slurping noodles",
     "phone": "scrolling the phone",
     "plant": "watering the plant",
+    "alarm": "time's up!",          # timer prop only, never picked at random
 }
 
 
@@ -479,6 +517,15 @@ def _prop(g, action):
         disc(g, 31, 15, 2, leaf); disc(g, 35, 14, 2, leaf)
         disc(g, 33, 12, 2, leafd)
         px(g, 28, 16, "#7fd0ff"); px(g, 27, 18, "#7fd0ff")           # water drops
+    elif action == "alarm":
+        red, redd, bell = "#e05050", "#b83b3b", "#f2c94c"
+        disc(g, 30, 13, 2, bell); disc(g, 37, 13, 2, bell)        # bells
+        odisc(g, 33, 18, 5, red, redd)          # clock body
+        disc(g, 33, 18, 3, "#ffffff")           # face
+        rect(g, 33, 16, 33, 18, EYE); rect(g, 33, 18, 35, 18, EYE)   # hands
+        px(g, 30, 23, redd); px(g, 36, 23, redd)                  # legs
+        for rx_, ry_ in ((26, 15), (25, 18), (40, 15), (41, 18)): # ringing
+            px(g, rx_, ry_, bell)
 
 
 def build_scene(mascot, action, blink=False, foot=0, bob=0, face=1):
