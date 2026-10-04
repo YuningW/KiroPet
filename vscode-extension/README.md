@@ -96,8 +96,8 @@ scene, **shuffle** a category, shuffle everything, or no background:
 ```sh
 cd vscode-extension
 npx @vscode/vsce package --skip-license --allow-missing-repository
-code --install-extension thaidevpet-0.7.0.vsix     # VS Code
-kiro --install-extension thaidevpet-0.7.0.vsix     # Kiro
+code --install-extension thaidevpet-0.7.1.vsix     # VS Code
+kiro --install-extension thaidevpet-0.7.1.vsix     # Kiro
 ```
 
 Pixel sprites and words come from the Python app (`sprites.py`,
